@@ -3,6 +3,7 @@
  * 
  * TODO: Move to dynamic loading minimized plugin.
  */
+//This covers version 52 of Lucidchart ("BCUVersion": 52 or "BackwardsCompatibilityStateVersion": 52)
 LucidImporter = {};
 (function()
 {
@@ -21,6 +22,12 @@ LucidImporter = {};
 	var s = "shape=mxgraph.";
 	var ss = "strokeColor=none;shape=mxgraph.";
 	var cs = 'mxCompositeShape';
+	var azur19 = 'aspect=fixed;html=1;points=[];align=center;image;image=img/lib/mscae/';
+	var gcpIcon = 'html=1;verticalLabelPosition=bottom;verticalAlign=top;strokeColor=none;shape=mxgraph.gcp2.';
+	var kupIcon = 'html=1;verticalLabelPosition=bottom;verticalAlign=top;strokeColor=none;shape=mxgraph.kubernetes.icon;prIcon=';
+	
+	//Instead of doing a massive code refactoring, this ugly global variable is used
+	var isLastLblHTML = false;
 	
 	//stencils to rotate counter clockwise 90 degrees
 	var rccw = [
@@ -91,19 +98,19 @@ LucidImporter = {};
 			'DisplayBlock': 'shape=display',
 			'OffPageLinkBlock': 'shape=offPageConnector',
 			'BraceNoteBlock': cs,
-			'NoteBlock': 'shape=partialRectangle;right=0', //s + flowchart.annotation_1
+			'NoteBlock': cs,
 //Containers
 			'AdvancedSwimLaneBlock': cs,
 			'AdvancedSwimLaneBlockRotated': cs,
 			'RectangleContainerBlock': 'container=1;collapsible=0',
 			'DiamondContainerBlock':  'shape=rhombus;fillColor=none;container=1',
 			'RoundedRectangleContainerBlock': 'fillColor=none;container=1;rounded=1;absoluteArcSize=1;arcSize=24',
-			'CircleContainerBlock': 'shape=ellipse;fillColor=none;container=1',
+			'CircleContainerBlock': 'ellipse;fillColor=none;container=1',
 			'PillContainerBlock': 'arcSize=50;fillColor=none;container=1',
-//			'BraceBlock' NA
-//			'BracketBlock' NA
-//			'BraceBlockRotated' NA
-//			'BracketBlockRotated' NA
+			'BraceBlock': cs,
+			'BracketBlock': cs,
+			'BraceBlockRotated': cs,
+			'BracketBlockRotated': cs,
 //Geometric shapes
 			'IsoscelesTriangleBlock': 'triangle;direction=north;anchorPointDirection=0',
 			'RightTriangleBlock': s + 'basic.orthogonal_triangle',
@@ -205,7 +212,7 @@ LucidImporter = {};
 			'MindMapBlock' : '',
 			'MindMapStadiumBlock' : 'arcSize=50',
 			'MindMapCloud' : 'shape=cloud',
-			'MindMapCircle' : 'shape=ellipse',
+			'MindMapCircle' : 'ellipse',
 			'MindMapIsoscelesTriangleBlock' : 'shape=triangle;direction=north',
 			'MindMapDiamondBlock' : 'shape=rhombus',
 			'MindMapPentagonBlock' : s + 'basic.pentagon',
@@ -227,19 +234,19 @@ LucidImporter = {};
 			'UMLTextBlock': cs,
 //UML Use Case
 			'UMLActorBlock': 'shape=umlActor;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;whiteSpace=nowrap',
-			'UMLUseCaseBlock': 'shape=ellipse',
-			'UMLCircleContainerBlock': 'shape=ellipse;container=1',
+			'UMLUseCaseBlock': 'ellipse',
+			'UMLCircleContainerBlock': 'ellipse;container=1',
 			'UMLRectangleContainerBlock': 'container=1',
 //UML State/Activity			
 			'UMLOptionLoopBlock' : s + 'sysml.package2;xSize=90;overflow=fill',
 			'UMLAlternativeBlock2' : s + 'sysml.package2;xSize=90;overflow=fill',
-			'UMLStartBlock' : 'shape=ellipse;fillColor=#000000',
+			'UMLStartBlock' : 'ellipse;fillColor=#000000',
 			'UMLStateBlock' : 'rounded=1;arcSize=20',
 			'UMLDecisionBlock' : 'shape=rhombus;',
 			'UMLHForkJoinBlock' : 'fillColor=#000000',
 			'UMLVForkJoinBlock' : 'fillColor=#000000',
 			'UMLFlowFinalBlock' : s + 'flowchart.or',
-			'UMLHistoryStateBlock' : 'shape=ellipse',
+			'UMLHistoryStateBlock' : 'ellipse',
 			'UMLEndBlock' : s + 'bpmn.shape;outline=end;symbol=terminate;strokeColor=#000000;fillColor=#ffffff',
 			'UMLObjectBlock' : '',
 			'UMLSendSignalBlock' : s + 'sysml.sendSigAct',
@@ -261,7 +268,7 @@ LucidImporter = {};
 //UML Component
 			'UMLComponentBlock' : 'shape=component;align=left;spacingLeft=36',
 			'UMLNodeBlock' : 'shape=cube;size=12;flipH=1',
-			'UMLComponentInterfaceBlock' : 'shape=ellipse',
+			'UMLComponentInterfaceBlock' : 'ellipse',
 			'UMLComponentBoxBlock' : cs, //TODO
 //			'UMLAssemblyConnectorBlock' NA
 			'UMLProvidedInterfaceBlock' : 'shape=lollipop;direction=south',
@@ -271,7 +278,7 @@ LucidImporter = {};
 //UML Entity Relationship
 			'UMLEntityBlock' : '',
 			'UMLWeakEntityBlock' : 'shape=ext;double=1',
-			'UMLAttributeBlock' : 'shape=ellipse',
+			'UMLAttributeBlock' : 'ellipse',
 			'UMLMultivaluedAttributeBlock' : 'shape=doubleEllipse',
 			'UMLRelationshipBlock' : 'shape=rhombus',
 			'UMLWeakRelationshipBlock' : 'shape=rhombus;double=1',
@@ -286,10 +293,11 @@ LucidImporter = {};
 			'BPMNAdvancedPoolBlock' : cs,
 			'BPMNAdvancedPoolBlockRotated' : cs,
 			'BPMNBlackPool' : cs,
+			'BPMNTextAnnotation' : cs,
 //Data Flow
 			'DFDExternalEntityBlock' : cs,
 			'DFDExternalEntityBlock2' : '',
-			'YDMDFDProcessBlock' : 'shape=ellipse',
+			'YDMDFDProcessBlock' : 'ellipse',
 			'YDMDFDDataStoreBlock' : 'shape=partialRectangle;right=0;left=0',
 			'GSDFDProcessBlock' : 'shape=swimlane;rounded=1;arcSize=10',
 			'GSDFDProcessBlock2' : 'rounded=1;arcSize=10;',
@@ -827,6 +835,511 @@ LucidImporter = {};
 			'AVMWebServerVMmultiBlock' : 'shape=mxgraph.mscae.vm.web_server_multi;strokeColor=none',
 			'AVMWindowsServerVMBlock' : 'shape=mxgraph.mscae.vm.windows_server;strokeColor=none',
 			'AVMWindowsServerVMmultiBlock' : 'shape=mxgraph.mscae.vm.windows_server_multi;strokeColor=none',
+// Azure 2019
+			'AccessReviewAzure2019': azur19 + 'Access_Review.svg',
+			'ActiveDirectoryConnectHealthAzure2019': azur19 + 'Active_Directory_Health_Monitoring.svg',
+			'ActiveDirectoryAzure2019': azur19 + 'Active_Directory.svg',
+			'ActiveDirectoryAzure2019_': azur19 + 'ActiveDirectory.svg',
+			'ActiveDirectoryDomainAzure2019': azur19 + 'ActiveDirectoryDomain.svg',
+			'AddressSpaceAzure2019': azur19 + 'Address_Space.svg',
+			'AddTeamMemberAzure2019': azur19 + 'AddTeamMember.svg',
+			'ADFSAzure2019': azur19 + 'ADFS.svg',
+			'AdvisorAzure2019': azur19 + 'Advisor.svg',
+			'AlienAzure2019': azur19 + 'Alien.svg',
+			'AlienSadAzure2019': azur19 + 'AlienSad.svg',
+			'AnalysisServicesAzure2019': azur19 + 'Analysis_Services.svg',
+			'APIManagementServicesAzure2019': azur19 + 'API_Management.svg',
+			'APIAzure2019': azur19 + 'API.svg',
+			'APIDefinitionAzure2019': azur19 + 'APIDefinition.svg',
+			'AppConfigurationAzure2019': azur19 + 'App_Configuration.svg',
+			'AppRegistrationsAzure2019': azur19 + 'App_Registrations.svg',
+			'AppServiceAPIAppsAzure2019': azur19 + 'App_Service_API_Apps.svg',
+			'AppServiceFrontendAzure2019': azur19 + 'App_Service_Frontend.svg',
+			'PublicIPAddressesAzure2019': azur19 + 'App_Service_IPAddress.svg',
+			'AzureAppServiceMobileAzure2019': azur19 + 'App_Service_Mobile_App.svg',
+			'AppServiceWorkerPoolsAzure2019': azur19 + 'App_Service_Worker_Pools.svg',
+			'AppServiceAzure2019': azur19 + 'App_Service.svg',
+			'AppServicesAzure2019': azur19 + 'App_Services.svg',
+			'AppServiceEnvironmentsAzure2019': azur19 + 'App_Services.svg',
+			'ApplicationGatewayAzure2019': azur19 + 'Application_Gateway.svg',
+			'ApplicationInsightsAzure2019': azur19 + 'Application_Insights.svg',
+			'ApplicationSecurityGroupsAzure2019': azur19 + 'Application_Security_Groups.svg',
+			'AppServiceConnectivityAzure2019': azur19 + 'AppServiceConnectivity.svg',
+			'AppServiceEnvironmentAzure2019': azur19 + 'AppServiceEnvironment.svg',
+			'ArchiveStorageAzure2019': azur19 + 'Archive_Storage.svg',
+			'ARMExplorerAzure2019': azur19 + 'ARMExplorer.svg',
+			'AuditingAzure2019': azur19 + 'Auditing.svg',
+			'AuditingServerAzure2019': azur19 + 'AuditingServer.svg',
+			'AutoBackupAzure2019': azur19 + 'AutoBackup.svg',
+			'AutomationAccountsAzure2019': azur19 + 'Automation.svg',
+			'AvatarAzure2019': azur19 + 'Avatar.svg',
+			'AvatarDefaultAzure2019': azur19 + 'AvatarDefault.svg',
+			'AvatarUnknownAzure2019': azur19 + 'AvatarUnknown.svg',
+			'Azure API for FHIRAzure2019': azur19 + 'Azure API for FHIR.svg',
+			'AzureADB2CAzure2019': azur19 + 'Azure_AD_B2C.svg',
+			'AzureADDomainServicesAzure2019': azur19 + 'Azure_AD_Domain_Services.svg',
+			'AzureADIdentityProtectionAzure2019': azur19 + 'Azure_AD_Identity_Protection.svg',
+			'AzureADPrivilegedIdentityManagementAzure2019': azur19 + 'Azure_AD_Privileged_Identity_Management.svg',
+			'AzureAPIforFHIRAzure2019': azur19 + 'Azure_API_for_FHIR.svg',
+			'AzureArtifactsAzure2019': azur19 + 'Azure_Artifacts.svg',
+			'AzureBoardsAzure2019': azur19 + 'Azure_Boards.svg',
+			'AzureCacheforRedisAzure2019': azur19 + 'Azure_Cache_for_Redis.svg',
+			'AzureDataExplorerClustersAzure2019': azur19 + 'Azure_Data_Explorer_Clusters.svg',
+			'AzureDatabaseforMariaDBServersAzure2019': azur19 + 'Azure_Database_for_MariaDB_servers.svg',
+			'AzureDatabaseforMySQLServersAzure2019': azur19 + 'Azure_Database_for_MySQL_servers.svg',
+			'AzureDatabaseforPostgreSQLServersAzure2019': azur19 + 'Azure_Database_for_PostgreSQL_servers.svg',
+			'AzureDatabaseMigrationServicesAzure2019': azur19 + 'Azure_Database_Migration_Services.svg',
+			'AzureDevOpsAzure2019': azur19 + 'Azure_DevOps.svg',
+			'AzureDigitalTwinsAzure2019': azur19 + 'Azure_Digital_Twins.svg',
+			'AzureFirewallAzure2019': azur19 + 'Azure_Firewall.svg',
+			'AzureHomeAzure2019': azur19 + 'Azure_Home.svg',
+			'AzureIoTHubSecurityAzure2019': azur19 + 'Azure_IoT_Hub_Security.svg',
+			'AzureIoTHubAzure2019': azur19 + 'Azure_IoT_Hub.svg',
+			'AzureMapsAzure2019': azur19 + 'Azure_Maps.svg',
+			'AzureMediaPlayerAzure2019': azur19 + 'Azure_Media_Player.svg',
+			'AzureNetAppfilesAzure2019': azur19 + 'Azure_NetApp_files.svg',
+			'AzurePipelinesAzure2019': azur19 + 'Azure_Pipelines.svg',
+			'AzureReposAzure2019': azur19 + 'Azure_Repos.svg',
+			'AzureSentinelAzure2019': azur19 + 'Azure_Sentinel.svg',
+			'AzureSphereAzure2019': azur19 + 'Azure_Sphere.svg',
+			'AzureTestPlansAzure2019': azur19 + 'Azure_Test_Plans.svg',
+			'AzureFXTEdgeFilerAzure2019': azur19 + 'AzureFXTEdgeFiler.svg',
+			'BacklogAzure2019': azur19 + 'Backlog.svg',
+			'RecoveryServicesVaultsAzure2019': azur19 + 'Backup.svg',
+			'BatchAccountsAzure2019': azur19 + 'Batch_Accounts.svg',
+			'BatchAIAzure2019': azur19 + 'Batch_AI.svg',
+			'BatchTaskAzure2019': azur19 + 'Batch_Task.svg',
+			'BatchTaskVMAzure2019': azur19 + 'Batch_TaskVM.svg',
+			'BatchAzure2019': azur19 + 'Batch.svg',
+			'BillingHubAzure2019': azur19 + 'BillingHub.svg',
+			'BizTalkServicesHybridConnectionsAzure2019': azur19 + 'BizTalk_Services_Hybrid_Connections.svg',
+			'BizTalkServicesAzure2019': azur19 + 'BizTalk_Services.svg',
+			'BlobStorageAzure2019': azur19 + 'BlobBlock.svg',
+			'BlobPageAzure2019': azur19 + 'BlobPage.svg',
+			'BlockchainAzure2019': azur19 + 'Blockchain.svg',
+			'BlogStorageAzure2019': azur19 + 'Blog_Storage.svg',
+			'BlueprintsAzure2019': azur19 + 'Blueprints.svg',
+			'BookAzure2019': azur19 + 'Book.svg',
+			'BotServicesAzure2019': azur19 + 'Bot_Services.svg',
+			'BranchAzure2019': azur19 + 'Branch.svg',
+			'BrowserAzure2019': azur19 + 'Browser.svg',
+			'BugAzure2019': azur19 + 'Bug.svg',
+			'BuildingBlocksAzure2019': azur19 + 'Building_Blocks.svg',
+			'BuildsAzure2019': azur19 + 'Builds.svg',
+			'AzureCacheplusRedisAzure2019': azur19 + 'Cache_including_Redis.svg',
+			'AzureCacheRedisAzure2019': azur19 + 'Cache_Redis_Product.svg',
+			'CalendarAzure2019': azur19 + 'Calendar.svg',
+			'CDNrocketAzure2019': azur19 + 'CDNrocket.svg',
+			'CertificateAzure2019': azur19 + 'Certificate.svg',
+			'AppServiceCertificatesAzure2019': azur19 + 'Certificate.svg',
+			'MetricsAzure2019': azur19 + 'Chart.svg',
+			'CheckAzure2019': azur19 + 'Check.svg',
+			'CitrixVirtualDesktopsEssentialsAzure2019': azur19 + 'Citrix_Virtual_Desktops_Essentials.svg',
+			'ReservedIPAddressesClassicAzure2019': azur19 + 'ClassicIPAddress.svg',
+			'ClassicStorageAzure2019': azur19 + 'ClassicStorage.svg',
+			'ClientAppsAzure2019': azur19 + 'Client_Apps.svg',
+			'RecentAzure2019': azur19 + 'Clock.svg',
+			'CycleCloudAzure2019': azur19 + 'Cloud_Cycle.svg',
+			'CloudServicesAzure2019': azur19 + 'Cloud_Service.svg',
+			'CloudServicesClassicAzure2019': azur19 + 'Cloud_Services_Classic.svg',
+			'CloudSimpleNodesAzure2019': azur19 + 'CloudSimple_Nodes.svg',
+			'CloudSimpleServicesAzure2019': azur19 + 'CloudSimple_Services.svg',
+			'CloudSimpleVirtualMachinesAzure2019': azur19 + 'CloudSimple_Virtual_Machines.svg',
+			'CodeAzure2019': azur19 + 'Code.svg',
+			'CognitiveServicesComputerVisionAzure2019': azur19 + 'Cognitive_Services_Computer_Vision.svg',
+			'CognitiveServicesemotionAzure2019': azur19 + 'Cognitive_Services_emotion.svg',
+			'CognitiveServicesfaceAzure2019': azur19 + 'Cognitive_Services_face.svg',
+			'CognitiveServicesluisAzure2019': azur19 + 'Cognitive_Services_luis.svg',
+			'CognitiveServicesrecommendationsAzure2019': azur19 + 'Cognitive_Services_recommendations.svg',
+			'CognitiveServicesSpeechAzure2019': azur19 + 'Cognitive_Services_Speech.svg',
+			'CognitiveServicestextanalyticsAzure2019': azur19 + 'Cognitive_Services_textanalytics.svg',
+			'CognitiveServicesweblanguagemodelAzure2019': azur19 + 'Cognitive_Services_web_language_model.svg',
+			'CognitiveServicesAzure2019': azur19 + 'Cognitive_Services.svg',
+			'CommitsAzure2019': azur19 + 'Commits.svg',
+			'ConnectionAzure2019': azur19 + 'Connection.svg',
+			'ConnectionsAzure2019': azur19 + 'Connections.svg',
+			'ContactInfoAzure2019': azur19 + 'ContactInfo.svg',
+			'ContainerInstancesAzure2019': azur19 + 'Container_Instances.svg',
+			'ContainerRegistriesAzure2019': azur19 + 'Container_Registries.svg',
+			'ContainerServiceAzure2019': azur19 + 'Container_Service.svg',
+			'CDNProfilesAzure2019': azur19 + 'Content_Delivery_Network.svg',
+			'ContentProtectionAzure2019': azur19 + 'Content_Protection.svg',
+			'ContentManagementSystemAzure2019': azur19 + 'ContentManagementSystem.svg',
+			'ContinuousExportAzure2019': azur19 + 'ContinuousExport.svg',
+			'ControllersAzure2019': azur19 + 'Controllers.svg',
+			'ControlsAzure2019': azur19 + 'Controls.svg',
+			'ControlsHorizontalAzure2019': azur19 + 'ControlsHorizontal.svg',
+			'AzureCosmosDBAzure2019': azur19 + 'CosmosDB.svg',
+			'CounterAzure2019': azur19 + 'Counter.svg',
+			'CubesAzure2019': azur19 + 'Cubes.svg',
+			'CustomDomainAzure2019': azur19 + 'CustomDomain.svg',
+			'AppServiceDomainsAzure2019': azur19 + 'CustomDomain.svg',
+			'CustomerLockboxAzure2019': azur19 + 'Customer_Lockbox.svg',
+			'CustomerInsightsAzure2019': azur19 + 'CustomerInsights.svg',
+			'DataBoxEdgeDataBoxGatewayAzure2019': azur19 + 'Data_Box_Edge_Data_Box_Gateway.svg',
+			'DataBoxAzure2019': azur19 + 'Data_Box.svg',
+			'ImportExportJobsAzure2019': azur19 + 'Data_Box.svg',
+			'AzureDataCatalogAzure2019': azur19 + 'Data_Catalog.svg',
+			'DataFactoriesAzure2019': azur19 + 'Data_Factory.svg',
+			'DataLakeAnalyticsAzure2019': azur19 + 'Data_Lake_Analytics.svg',
+			'DataLakeStorageAzure2019': azur19 + 'Data_Lake_Storage.svg',
+			'DataLakeStoreGen1Azure2019': azur19 + 'Data_Lake_Store.svg',
+			'DataLakeAzure2019': azur19 + 'Data_Lake.svg',
+			'DataWarehouseAzure2019': azur19 + 'Data_Warehouse.svg',
+			'AzureDatabaseGenericAzure2019': azur19 + 'Database_General.svg',
+			'DatabaseRestoreAzure2019': azur19 + 'DatabaseRestore.svg',
+			'AzureDatabricksAzure2019': azur19 + 'Databricks.svg',
+			'dataExportAzure2019': azur19 + 'dataExport.svg',
+			'dataRetentionAzure2019': azur19 + 'dataRetention.svg',
+			'DataServicescategoryrollupAzure2019': azur19 + 'DataServices_category_rollup.svg',
+			'DCOSAzure2019': azur19 + 'DC_OS.svg',
+			'DDOSProtectionPlansAzure2019': azur19 + 'DDOS_Protection_Plans.svg',
+			'DedicatedEventHubAzure2019': azur19 + 'Dedicated_Event_Hub.svg',
+			'DevConsoleAzure2019': azur19 + 'DevConsole.svg',
+			'DeveloperToolsAzure2019': azur19 + 'Developer_Tools.svg',
+			'DeviceComplianceAzure2019': azur19 + 'Device_Compliance.svg',
+			'DeviceConfigAzure2019': azur19 + 'Device_Config.svg',
+			'DeviceProvisioningServicesAzure2019': azur19 + 'Device_Provisioning_Services.svg',
+			'DevicesGroupsAzure2019': azur19 + 'Devices_Groups.svg',
+			'AzureDevTestLabsAzure2019': azur19 + 'DevTest_Labs.svg',
+			'DirectorySyncAzure2019': azur19 + 'DirectorySync.svg',
+			'DiscardAzure2019': azur19 + 'Discard.svg',
+			'DisksAzure2019': azur19 + 'Discs.svg',
+			'DNSPrivateZonesAzure2019': azur19 + 'DNS_Private_Zones.svg',
+			'DNSZonesAzure2019': azur19 + 'DNS.svg',
+			'DockerAzure2019': azur19 + 'Docker.svg',
+			'DocumentDBAzure2019': azur19 + 'DocumentDB.svg',
+			'DownloadAzure2019': azur19 + 'Download.svg',
+			'EBooksAzure2019': azur19 + 'eBooks.svg',
+			'EducationAzure2019': azur19 + 'Education.svg',
+			'ElasticDatabasePoolsAzure2019': azur19 + 'Elastic_Database_Pools.svg',
+			'ElasticJobAgentsAzure2019': azur19 + 'Elastic_Job_Agents.svg',
+			'EnrollmentAzure2019': azur19 + 'Enrollment.svg',
+			'EnterpriseApplicationsAzure2019': azur19 + 'Enterprise_Applications.svg',
+			'EventGridTopicsAzure2019': azur19 + 'Event_Grid_Topics.svg',
+			'EventGridDomainsAzure2019': azur19 + 'Event_Grid.svg',
+			'EventGridSubscriptionsAzure2019': azur19 + 'Event_Grid.svg',
+			'EventHubClustersAzure2019': azur19 + 'Event_Hub_Clusters.svg',
+			'EventHubsAzure2019': azur19 + 'Event_Hubs.svg',
+			'EventLogAzure2019': azur19 + 'EventLog.svg',
+			'ExchangeOnPremisesAccessAzure2019': azur19 + 'Exchange_On_premises_Access.svg',
+			'ExpressRouteCircuitsAzure2019': azur19 + 'Express_Route.svg',
+			'ExtensionsAzure2019': azur19 + 'Extensions.svg',
+			'FavoriteAzure2019': azur19 + 'Favorite.svg',
+			'FileAzure2019': azur19 + 'File.svg',
+			'FilesAzure2019': azur19 + 'Files.svg',
+			'FolderAzure2019': azur19 + 'Folder.svg',
+			'FolderBlankAzure2019': azur19 + 'FolderBlank.svg',
+			'FolderCubeAzure2019': azur19 + 'FolderCube.svg',
+			'FolderWebsiteAzure2019': azur19 + 'FolderWebsite.svg',
+			'ForPlacementOnlyAzure2019': azur19 + 'ForPlacementOnly.svg',
+			'FreeServicesAzure2019': azur19 + 'Free_Services.svg',
+			'FrontDoorsAzure2019': azur19 + 'Front_Doors.svg',
+			'FtpAzure2019': azur19 + 'Ftp.svg',
+			'FunctionAppsAzure2019': azur19 + 'Functions.svg',
+			'GalleryManagementAzure2019': azur19 + 'GalleryManagement.svg',
+			'GatewayAzure2019': azur19 + 'Gateway.svg',
+			'Gear2Azure2019': azur19 + 'Gear_2.svg',
+			'GearAzure2019': azur19 + 'Gear.svg',
+			'GearAlternate2Azure2019': azur19 + 'GearAlternate_2.svg',
+			'GearAlternateAzure2019': azur19 + 'GearAlternate.svg',
+			'GeneralStorageAzure2019': azur19 + 'General_Storage.svg',
+			'GenomicsAccountsAzure2019': azur19 + 'Genomics_Accounts.svg',
+			'GeoReplicationPremiumAzure2019': azur19 + 'GeoReplicationPremium.svg',
+			'GeoReplicationStandardAzure2019': azur19 + 'GeoReplicationStandard.svg',
+			'GetMoreLicenseAzure2019': azur19 + 'GetMoreLicense.svg',
+			'GetStartedAzure2019': azur19 + 'GetStarted.svg',
+			'GiftAzure2019': azur19 + 'Gift.svg',
+			'GlobeAzure2019': azur19 + 'Globe.svg',
+			'GlobeErrorAzure2019': azur19 + 'GlobeError.svg',
+			'GlobeSuccessAzure2019': azur19 + 'GlobeSuccess.svg',
+			'GlobeWarningAzure2019': azur19 + 'GlobeWarning.svg',
+			'GoAzure2019': azur19 + 'Go.svg',
+			'GreatScottAzure2019': azur19 + 'GreatScott.svg',
+			'GridAzure2019': azur19 + 'Grid.svg',
+			'AllResourcesAzure2019': azur19 + 'Grid3x3.svg',
+			'GuestAssignmentsAzure2019': azur19 + 'Guest_Assignments.svg',
+			'Guide2Azure2019': azur19 + 'Guide_2.svg',
+			'GuideAzure2019': azur19 + 'Guide.svg',
+			'HammerAzure2019': azur19 + 'Hammer.svg',
+			'HDInsightAzure2019': azur19 + 'HDInsight.svg',
+			'HDInsightClustersAzure2019': azur19 + 'HDInsightClusters.svg',
+			'HealthErrorBadgeAzure2019': azur19 + 'HealthErrorBadge.svg',
+			'HealthWarningBadgeAzure2019': azur19 + 'HealthWarningBadge.svg',
+			'HeartAzure2019': azur19 + 'Heart.svg',
+			'HeartPulseAzure2019': azur19 + 'HeartPulse.svg',
+			'HomeAzure2019': azur19 + 'Home.svg',
+			'HybridConnectionEndpointAzure2019': azur19 + 'HybridConnectionEndpoint.svg',
+			'IdentityGovernanceAzure2019': azur19 + 'Identity_Governance.svg',
+			'ImageDefinitionsAzure2019': azur19 + 'Image_Definitions.svg',
+			'ImageVersionsAzure2019': azur19 + 'Image_Versions.svg',
+			'ImageAzure2019': azur19 + 'Image.svg',
+			'InboundNATAzure2019': azur19 + 'InboundNAT.svg',
+			'InboundRuleAzure2019': azur19 + 'InboundRule.svg',
+			'InformationAzure2019': azur19 + 'Info_2.svg',
+			'WhatsNewAzure2019': azur19 + 'Info.svg',
+			'AzureTimeSeriesInsightsEventsSourcesAzure2019': azur19 + 'Input.svg',
+			'InputOutputAzure2019': azur19 + 'InputOutput.svg',
+			'InstallVisualStudioAzure2019': azur19 + 'InstallVisualStudio.svg',
+			'IntegrationAccountsAzure2019': azur19 + 'Integration_Accounts.svg',
+			'IntegrationServiceEnvironmentsAzure2019': azur19 + 'Integration_Service_Environments.svg',
+			'IntuneAppProtectionAzure2019': azur19 + 'Intune_App_Protection.svg',
+			'IntuneAzure2019': azur19 + 'Intune_App_Protection.svg',
+			'IOTedgeAzure2019': azur19 + 'IOT_edge.svg',
+			'JobAzure2019': azur19 + 'Job.svg',
+			'JourneyHubAzure2019': azur19 + 'JourneyHub.svg',
+			'KeyVaultsAzure2019': azur19 + 'Key_Vaults.svg',
+			'SubscriptionsAzure2019': azur19 + 'Key.svg',
+			'KeyboardShortcutsAzure2019': azur19 + 'KeyboardShortcuts.svg',
+			'KeyVaultAzure2019': azur19 + 'KeyVault.svg',
+			'KubernetesServicesAzure2019': azur19 + 'Kubernetes_Services.svg',
+			'KubernetesAzure2019': azur19 + 'Kubernetes.svg',
+			'KuduKnifeAzure2019': azur19 + 'KuduKnife.svg',
+			'LaunchPortalAzure2019': azur19 + 'LaunchPortal.svg',
+			'LoadBalancersAzure2019': azur19 + 'Load_Balancer_feature.svg',
+			'LoadTestAzure2019': azur19 + 'LoadTest.svg',
+			'LocalNetworkGatewaysAzure2019': azur19 + 'Local_Network_Gateways.svg',
+			'LocalNetworkAzure2019': azur19 + 'LocalNetwork.svg',
+			'LocationAzure2019': azur19 + 'Location.svg',
+			'LogAnalyticsWorkspacesAzure2019': azur19 + 'Log_Analytics_Workspaces.svg',
+			'ActivityLogAzure2019': azur19 + 'Log.svg',
+			'DiagnosticSettingsAzure2019': azur19 + 'LogDiagnostics.svg',
+			'LogicAppsCustomConnectorAzure2019': azur19 + 'Logic_Apps_Custom_Connector.svg',
+			'LogicAppsAzure2019': azur19 + 'Logic_Apps.svg',
+			'LogStreamingAzure2019': azur19 + 'LogStreaming.svg',
+			'MachineLearningServiceWorkspacesAzure2019': azur19 + 'Machine_Learning_Service_Workspaces.svg',
+			'MachineLearningStudioWebServicePlansAzure2019': azur19 + 'Machine_Learning_Studio_Web_Service_Plans.svg',
+			'MachineLearningStudioWebServicesAzure2019': azur19 + 'Machine_Learning_Studio_Web_Services.svg',
+			'MachineLearningStudioWorkspacesAzure2019': azur19 + 'Machine_Learning_Studio_Workspaces.svg',
+			'MachineLearningAzure2019': azur19 + 'Machine_Learning.svg',
+			'MachineLearningServicePlansAzure2019': azur19 + 'MachineLearningServicePlans.svg',
+			'MachineLearningWebServicesAzure2019': azur19 + 'MachineLearningWebServices.svg',
+			'MachineLearningWorkspacesAzure2019': azur19 + 'MachineLearningWorkspaces.svg',
+			'ManagedApplicationsAzure2019': azur19 + 'Managed_Applications.svg',
+			'ManagedDatabasesAzure2019': azur19 + 'Managed_Databases.svg',
+			'ManagedDesktopAzure2019': azur19 + 'Managed_Desktop.svg',
+			'ManagedIdentitiesAzure2019': azur19 + 'Managed_Identities.svg',
+			'ManagedApplicationsAzure2019_': azur19 + 'ManagedApplications.svg',
+			'ManagementGroupsAzure2019': azur19 + 'Management_Groups.svg',
+			'ManagementPortalAzure2019': azur19 + 'Management_Portal.svg',
+			'ManagePortalAzure2019': azur19 + 'ManagePortal.svg',
+			'DiskSnapshotsAzure2019': azur19 + 'MD_snapshot.svg',
+			'MediaEncodingAzure2019': azur19 + 'Media_Encoding.svg',
+			'MediaOnDemandAzure2019': azur19 + 'Media_On_Demand.svg',
+			'MediaServicesAzure2019': azur19 + 'Media_Services.svg',
+			'AzureMediaServicesAzure2019': azur19 + 'Media_Services.svg',
+			'MediaFileAzure2019': azur19 + 'MediaFile.svg',
+			'MigrationProjectsAzure2019': azur19 + 'Migration_Projects.svg',
+			'AzureMobileEngagementAzure2019': azur19 + 'Mobile_Engagement.svg',
+			'ModuleAzure2019': azur19 + 'Module.svg',
+			'MonitorAzure2019': azur19 + 'Monitor.svg',
+			'MonitoringAzure2019': azur19 + 'Monitoring.svg',
+			'MultiFactorAuthenticationAzure2019': azur19 + 'Multi_Factor_Authentication.svg',
+			'MySQLClearDBdatabaseAzure2019': azur19 + 'MySQL_ClearDB_database.svg',
+			'NetworkSecurityGroupsClassicAzure2019': azur19 + 'Network_Security_Groups_Classic.svg',
+			'NetworkWatcherAzure2019': azur19 + 'Network_watcher.svg',
+			'NetworkInterfacesAzure2019': azur19 + 'NetworkInterfaceCard.svg',
+			'NewAzure2019': azur19 + 'New.svg',
+			'NextBillAzure2019': azur19 + 'NextBill.svg',
+			'NonAzureMachineAzure2019': azur19 + 'Non_Azure_Machine.svg',
+			'NotificationHubsAzure2019': azur19 + 'Notification_Hubs.svg',
+			'NotificationHubNamespacesAzure2019': azur19 + 'Notification_Hubs.svg',
+			'AlertsAzure2019': azur19 + 'Notification.svg',
+			'NSGAzure2019': azur19 + 'NSG.svg',
+			'OfferAzure2019': azur19 + 'Offer.svg',
+			'OnPremisesDataGatewaysAzure2019': azur19 + 'On_Premises_Data_Gateways.svg',
+			'OnPremiseSetupAzure2019': azur19 + 'OnPremiseSetup.svg',
+			'AzureOpenShiftAzure2019': azur19 + 'OpenShift.svg',
+			'OperationsManagementSuiteAzure2019': azur19 + 'Operations_Management_Suite.svg',
+			'OSImagesClassicAzure2019': azur19 + 'OS_Images_Classic.svg',
+			'OutboundNATAzure2019': azur19 + 'OutboundNAT.svg',
+			'OutboundRuleAzure2019': azur19 + 'OutboundRule.svg',
+			'OutputAzure2019': azur19 + 'Output.svg',
+			'overageCostsAzure2019': azur19 + 'overageCosts.svg',
+			'PausedAzure2019': azur19 + 'Paused.svg',
+			'PeeringsAzure2019': azur19 + 'Peerings.svg',
+			'PendingAzure2019': azur19 + 'Pending.svg',
+			'UserIconAzure2019': azur19 + 'Person.svg',
+			'PersonWithFriendAzure2019': azur19 + 'PersonWithFriend.svg',
+			'PhoneAzure2019': azur19 + 'Phone.svg',
+			'PluralsightAzure2019': azur19 + 'PluralSight_mono.svg',
+			'PolicyAzure2019': azur19 + 'Policy.svg',
+			'PortalCurrentAzure2019': azur19 + 'PortalCurrent.svg',
+			'PostponeAzure2019': azur19 + 'Postpone.svg',
+			'PowerAzure2019': azur19 + 'Power.svg',
+			'PowershellAzure2019': azur19 + 'Powershell.svg',
+			'PowerUp2Azure2019': azur19 + 'PowerUp_2.svg',
+			'PowerUpAzure2019': azur19 + 'PowerUp.svg',
+			'PreviewRightAzure2019': azur19 + 'PreviewRight.svg',
+			'ProbeAzure2019': azur19 + 'Probe.svg',
+			'ProcessExplorerAzure2019': azur19 + 'ProcessExplorer.svg',
+			'ProductionReadyDBAzure2019': azur19 + 'ProductionReadyDB.svg',
+			'PublishAzure2019': azur19 + 'Publish.svg',
+			'PullRequestAzure2019': azur19 + 'PullRequest.svg',
+			'QSDiagnosticsAzure2019': azur19 + 'QSDiagnostics.svg',
+			'QSFileAzure2019': azur19 + 'QSFile.svg',
+			'QSMailAzure2019': azur19 + 'QSMail.svg',
+			'QSWarningAzure2019': azur19 + 'QSWarning.svg',
+			'QueuedAzure2019': azur19 + 'Queued.svg',
+			'QueuesStorageAzure2019': azur19 + 'Queues_Storage.svg',
+			'QuickStartCenterAzure2019': azur19 + 'Quick_Start_Center.svg',
+			'QuickstartAzure2019': azur19 + 'Quickstart.svg',
+			'QuotaAzure2019': azur19 + 'Quota.svg',
+			'RainAzure2019': azur19 + 'Rain.svg',
+			'RDMAAzure2019': azur19 + 'RDMA.svg',
+			'RecommendationAzure2019': azur19 + 'Recommendation.svg',
+			'RemoteAppAzure2019': azur19 + 'RemoteApp.svg',
+			'ReservationsAzure2019': azur19 + 'Reservations.svg',
+			'ResourceExplorerAzure2019': azur19 + 'Resource_Explorer.svg',
+			'ResourceGraphExplorerAzure2019': azur19 + 'Resource_Graph_Explorer.svg',
+			'ResourceGroupsAzure2019': azur19 + 'Resource_Groups.svg',
+			'ResourceDefaultAzure2019': azur19 + 'ResourceDefault.svg',
+			'ResourceGroupAzure2019': azur19 + 'ResourceGroup.svg',
+			'ResourceLinkedAzure2019': azur19 + 'ResourceLinked.svg',
+			'ResourceProviderAzure2019': azur19 + 'ResourceProvider.svg',
+			'ResourceRoleAzure2019': azur19 + 'ResourceRole.svg',
+			'RouteFiltersAzure2019': azur19 + 'Route_Filter.svg',
+			'RuleAzure2019': azur19 + 'Rule.svg',
+			'RunbooksAzure2019': azur19 + 'Runbooks.svg',
+			'RunbookSourceAzure2019': azur19 + 'RunbookSource.svg',
+			'SAPHANAonAzureAzure2019': azur19 + 'SAP_HANA_on_Azure.svg',
+			'ScaleAzure2019': azur19 + 'Scale.svg',
+			'ScaleAltAzure2019': azur19 + 'ScaleAlt.svg',
+			'SchedulerJobAzure2019': azur19 + 'SchedulerJob.svg',
+			'SchedulerJobCollectionsAzure2019': azur19 + 'SchedulerJobCollection.svg',
+			'SDKAzure2019': azur19 + 'SDK.svg',
+			'SearchAzure2019': azur19 + 'Search.svg',
+			'AzureSearchAzure2019': azur19 + 'Search.svg',
+			'SearchGridAzure2019': azur19 + 'SearchGrid.svg',
+			'SecurityBaselinesAzure2019': azur19 + 'Security_Baselines.svg',
+			'ConditionalAccessAzure2019': azur19 + 'Security_Center.svg',
+			'SecurityCenterAzure2019': azur19 + 'Security_Center.svg',
+			'SendGridAccountsAzure2019': azur19 + 'SendGrid_Accounts.svg',
+			'ServerAzure2019': azur19 + 'Server.svg',
+			'ServerFarmAzure2019': azur19 + 'ServerFarm.svg',
+			'ServerProxyAzure2019': azur19 + 'ServerProxy.svg',
+			'serversAndMobileDevicesAzure2019': azur19 + 'serversAndMobileDevices.svg',
+			'ServiceBusQueuesAzure2019': azur19 + 'Service_Bus_Queues.svg',
+			'AzureServiceBusRelaysAzure2019': azur19 + 'Service_Bus_Relay.svg',
+			'ServiceBusTopicsAzure2019': azur19 + 'Service_Bus_Topics.svg',
+			'AzureServiceBusAzure2019': azur19 + 'Service_Bus.svg',
+			'ServiceCatalogManagedApplicationDefinitionsAzure2019': azur19 + 'Service_Catalog_Managed_Application_Definitions.svg',
+			'ServiceEndpointPoliciesAzure2019': azur19 + 'Service_Endpoint_Policies.svg',
+			'ServiceFabricClustersAzure2019': azur19 + 'Service_Fabric.svg',
+			'ServiceHealthAzure2019': azur19 + 'ServiceHealth.svg',
+			'SharedDashboardAzure2019': azur19 + 'Shared_Dashboard.svg',
+			'SharedImageGalleriesAzure2019': azur19 + 'Shared_Image_Galleries.svg',
+			'ShieldFirewallAzure2019': azur19 + 'ShieldFirewall.svg',
+			'SignalRAzure2019': azur19 + 'SignalR.svg',
+			'SiteRecoveryAzure2019': azur19 + 'Site_Recovery.svg',
+			'SoftwareasaServiceSaaSAzure2019': azur19 + 'Software_as_a_Service.svg',
+			'SoftwareUpdateAzure2019': azur19 + 'Software_Update.svg',
+			'SolutionsAzure2019': azur19 + 'Solutions.svg',
+			'SpatialAnchorAzure2019': azur19 + 'Spatial_Anchor.svg',
+			'SQLDatabasesAzure2019': azur19 + 'SQL_Database_generic.svg',
+			'AzureSQLDataWarehouseAzure2019': azur19 + 'SQL_DataWarehouse.svg',
+			'SQLManagedInstancesAzure2019': azur19 + 'SQL_Managed_Instances.svg',
+			'SQLServersAzure2019': azur19 + 'SQL_Servers.svg',
+			'SQLStretchDatabaseAzure2019': azur19 + 'SQL_Stretch_Database.svg',
+			'SQLServerStretchDatabasesAzure2019': azur19 + 'dep/SQL_Server_Stretch_DB.svg',
+			'SQLQueryPerformanceCheckAzure2019': azur19 + 'SQLQueryPerformanceCheck.svg',
+			'SSDAzure2019': azur19 + 'SSD.svg',
+			'StackOverflowAzure2019': azur19 + 'StackOverflow.svg',
+			'StorageAccountsAzure2019': azur19 + 'Storage_Accounts.svg',
+			'StorageExplorerAzure2019': azur19 + 'Storage_Explorer.svg',
+			'StorageSyncServicesAzure2019': azur19 + 'Storage_sync_service.svg',
+			'StorageAzure2019': azur19 + 'Storage.svg',
+			'StorageAzureFilesAzure2019': azur19 + 'StorageAzureFiles.svg',
+			'StorageContainerAzure2019': azur19 + 'StorageContainer.svg',
+			'StorageQueueAzure2019': azur19 + 'StorageQueue.svg',
+			'StorageReplicaAzure2019': azur19 + 'StorageReplica.svg',
+			'MarketplaceAzure2019': azur19 + 'Store_Marketplace.svg',
+			'StorSimpleDataManagersAzure2019': azur19 + 'StorSimple_Data_Managers.svg',
+			'AzureStorSimpleDeviceManagersAzure2019': azur19 + 'StorSimple.svg',
+			'StorSimpleDeviceManagersAzure2019': azur19 + 'StorSimple.svg',
+			'StreamAnalyticsJobsAzure2019': azur19 + 'Stream_Analytics.svg',
+			'SubnetAzure2019': azur19 + 'Subnet.svg',
+			'HelpSupportAzure2019': azur19 + 'Support_2.svg',
+			'SupportRequestsAzure2019': azur19 + 'Support_Requests.svg',
+			'SupportAzure2019': azur19 + 'Support.svg',
+			'TableStorageAzure2019': azur19 + 'Table_Storage.svg',
+			'TagAzure2019': azur19 + 'Tag.svg',
+			'TagsAzure2019': azur19 + 'Tags.svg',
+			'TaskAzure2019': azur19 + 'Task.svg',
+			'TasksAzure2019': azur19 + 'Tasks.svg',
+			'TasksPolychromaticAzure2019': azur19 + 'TasksPolychromatic.svg',
+			'TaskVMAzure2019': azur19 + 'TaskVM.svg',
+			'TaxAzure2019': azur19 + 'Tax.svg',
+			'TeamProjectAzure2019': azur19 + 'TeamProject.svg',
+			'TemplatesAzure2019': azur19 + 'Templates.svg',
+			'TenantStatusAzure2019': azur19 + 'Tenant_Status.svg',
+			'TFSVCRepositoryAzure2019': azur19 + 'TFSVCRepository.svg',
+			'AzureTimeSeriesInsightsEnvironmentsAzure2019': azur19 + 'Time_Series_Insights_environments.svg',
+			'TimeSeriesInsightsAzure2019': azur19 + 'TimeSeriesInsights.svg',
+			'ToolboxAzure2019': azur19 + 'Toolbox.svg',
+			'ToolsAzure2019': azur19 + 'Tools.svg',
+			'TrafficManagerProfilesAzure2019': azur19 + 'Traffic_Manager.svg',
+			'TrafficManagerDisabledAzure2019': azur19 + 'TrafficManagerDisabled.svg',
+			'TrafficManagerEnabledAzure2019': azur19 + 'TrafficManagerEnabled.svg',
+			'TwoUserIconAzure2019': azur19 + 'Two_User_Icon.svg',
+			'UnidentifiedFeatureObjectAzure2019': azur19 + 'Unidentified_Feature_Object.svg',
+			'UserHealthIconAzure2019': azur19 + 'User_Health_Icon.svg',
+			'UserPrivacyAzure2019': azur19 + 'User_Privacy.svg',
+			'UserResourceAzure2019': azur19 + 'User_Resource.svg',
+			'RouteTablesAzure2019': azur19 + 'UserDefinedRoute.svg',
+			'VariablesAzure2019': azur19 + 'Variables.svg',
+			'VersionsAzure2019': azur19 + 'Versions.svg',
+			'VirtualClustersAzure2019': azur19 + 'Virtual_Clusters.svg',
+			'VirtualDatacenterAzure2019': azur19 + 'Virtual_Datacenter.svg',
+			'VMClassicAzure2019': azur19 + 'Virtual_Machine_2.svg',
+			'VMAzure2019': azur19 + 'Virtual_Machine.svg',
+			'AvailabilitySetsAzure2019': azur19 + 'Virtual_Machines_Availability_Set.svg',
+			'VirtualMachinesLinuxAzure2019': azur19 + 'Virtual_Machines_Linux.svg',
+			'VirtualNetworkClassicAzure2019': azur19 + 'Virtual_Network_Classic.svg',
+			'VirtualNetworksAzure2019': azur19 + 'Virtual_Network.svg',
+			'VirtualWANsAzure2019': azur19 + 'Virtual_WANs.svg',
+			'VirtualMachineLinuxAzure2019': azur19 + 'VirtualMachineLinux.svg',
+			'VMWindowsAzure2019': azur19 + 'VirtualMachineWindows.svg',
+			'VisualStudioTeamServicesCodePlexsourceAzure2019': azur19 + 'Visual_Studio_Team_Services_CodePlex_source.svg',
+			'VMImagesAzure2019': azur19 + 'VM_Images.svg',
+			'VMLinuxNonAzureAzure2019': azur19 + 'VM_Linux_Non_Azure.svg',
+			'VMLinuxAzure2019': azur19 + 'VM_Linux.svg',
+			'VMScaleSetsAzure2019': azur19 + 'VM_Scale_Set.svg',
+			'VMWindowsNonAzureAzure2019': azur19 + 'VM_Windows_Non_Azure.svg',
+			'VMScaleAzure2019': azur19 + 'VMScale.svg',
+			'VirtualNetworkGatewaysAzure2019': azur19 + 'VPN_Gateway.svg',
+			'VPNPointToSiteAzure2019': azur19 + 'VPNPointToSite.svg',
+			'VPNSiteToSiteAzure2019': azur19 + 'VPNSiteToSite.svg',
+			'WebAppFirewallAzure2019': azur19 + 'Web_App_Firewall.svg',
+			'WebAppWebJobsAzure2019': azur19 + 'WebApp_WebJobs.svg',
+			'UmbracoAzure2019': azur19 + 'WebAppUmbraco.svg',
+			'WordPressAzure2019': azur19 + 'WebAppWordPress.svg',
+			'WebEnvironmentAzure2019': azur19 + 'WebEnvironment.svg',
+			'WebhooksAzure2019': azur19 + 'Webhooks.svg',
+			'WebHostingAzure2019': azur19 + 'WebHosting.svg',
+			'AppServicePlansAzure2019': azur19 + 'WebHosting.svg',
+			'WebNetworkAzure2019': azur19 + 'WebNetwork.svg',
+			'WebsitePowerAzure2019': azur19 + 'WebsitePower.svg',
+			'WebsiteReplicatorAzure2019': azur19 + 'WebsiteReplicator.svg',
+			'WebsiteSettingsAzure2019': azur19 + 'WebsiteSettings.svg',
+			'WebsiteStagingAzure2019': azur19 + 'WebsiteStaging.svg',
+			'WebSlotsAzure2019': azur19 + 'WebSlots.svg',
+			'WebTestAzure2019': azur19 + 'WebTest.svg',
+			'Windows10IoTCoreServicesAzure2019': azur19 + 'Windows_10_IoT_Core_Services.svg',
+			'WorkflowAzure2019': azur19 + 'Workflow.svg',
+			'WrenchAzure2019': azur19 + 'Wrench.svg',
+			'XboxControllerAzure2019': azur19 + 'XboxController.svg',
+			'HockeyAppAzure2019' : 'shadow=0;dashed=0;html=1;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;shape=mxgraph.mscae.cloud.hockeyapp;fillColor=#0079D6;pointerEvents=1',
+			'AppServiceLogicAppAzure2019': azur19 + 'dep/App_Service_Logic_App.svg',
+			//'ApplicationGatewayAzure2019': azur19 + 'dep/Application_Gateway.svg',
+			'ContentDeliveryNetworkAzure2019': azur19 + 'dep/Content_Delivery_Network.svg',
+			//'DataLakeAnalyticsAzure2019': azur19 + 'dep/Data_Lake_Analytics.svg',
+			'DataLakeStoreAzure2019': azur19 + 'dep/Data_Lake_Store.svg',
+			//'DataLakeAzure2019': azur19 + 'dep/Data_Lake.svg',
+			//'DataWarehouseAzure2019': azur19 + 'dep/DataWarehouse.svg',
+			'AzureInformationProtectionAzure2019' : 'aspect=fixed;shadow=0;dashed=0;html=1;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;shape=mxgraph.mscae.cloud.azure_rights_management_rms;fillColor=#58B4D9;',
+			'IoTCentralApplicationsAzure2019' : 'aspect=fixed;shadow=0;dashed=0;html=1;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;shape=mxgraph.mscae.cloud.central;fillColor=#0079D6;pointerEvents=1',
+			
 //Cisco Basic
 			'Cisco_cisco_androgenous_person' : s + 'cisco.people.androgenous_person;' + c,
 			'Cisco_cisco_atm_switch' : s + 'cisco.switches.atm_switch;' + c,
@@ -1309,7 +1822,7 @@ LucidImporter = {};
 //Miscellaneous
 			'EE_Plus' : s + 'ios7.misc.flagged',
 			'EE_Negative' : 'shape=line',
-			'EE_InverterContact' : 'shape=ellipse',
+			'EE_InverterContact' : 'ellipse',
 			'EE_Voltmeter' : s + 'electrical.instruments.voltmeter',
 			'EE_Ammeter' : s + 'electrical.instruments.ampermeter',
 			'EE_SineWave' : s + 'electrical.waveforms.sine_wave',
@@ -1378,45 +1891,225 @@ LucidImporter = {};
 			'EITestMessageBlock' : s + 'eip.test_message;verticalLabelPosition=bottom;verticalAlign=top',
 			'EIChannelPurgerBlock' : s + 'eip.channel_purger;verticalLabelPosition=bottom;verticalAlign=top',
 //Google Cloud Platform
-			'GCPIconComputeEngineBlock' : ss + 'gcp2.compute_engine;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconAppEngineBlock' : ss + 'gcp2.app_engine;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconContainerEngineBlock' : ss + 'gcp2.container_engine;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconContainerRegistryBlock' : ss + 'gcp2.container_registry;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudFunctionsBlock' : ss + 'gcp2.cloud_functions;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudStorageBlock' : ss + 'gcp2.cloud_storage;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudSQLBlock' : ss + 'gcp2.cloud_sql;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudBigtableBlock' : ss + 'gcp2.cloud_bigtable;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudDatastoreBlock' : ss + 'gcp2.cloud_datastore;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconPersistentDiskBlock' : ss + 'gcp2.persistent_disk;verticalLabelPosition=bottom;verticalAlign=top',
+			'GCPIconComputeEngineBlock' : gcpIcon + 'compute_engine',
+			'GCPIconAppEngineBlock' : gcpIcon + 'app_engine',
+			'GCPIconContainerEngineBlock' : gcpIcon + 'container_engine',
+			'GCPIconContainerRegistryBlock' : gcpIcon + 'container_registry',
+			'GCPIconCloudFunctionsBlock' : gcpIcon + 'cloud_functions',
+			'GCPIconCloudStorageBlock' : gcpIcon + 'cloud_storage',
+			'GCPIconCloudSQLBlock' : gcpIcon + 'cloud_sql',
+			'GCPIconCloudBigtableBlock' : gcpIcon + 'cloud_bigtable',
+			'GCPIconCloudDatastoreBlock' : gcpIcon + 'cloud_datastore',
+			'GCPIconPersistentDiskBlock' : gcpIcon + 'persistent_disk',
 			'GCPIconCloudVirtualNetworkBlock' : ss + 'gcp.networking.cloud_virtual_network;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudLoadBalancingBlock' : ss + 'gcp2.cloud_load_balancing;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudCDNBlock' : ss + 'gcp2.cloud_cdn;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudInterconnectBlock' : ss + 'gcp2.dedicated_interconnect;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudDNSBlock' : ss + 'gcp2.cloud_dns;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconBigQueryBlock' : ss + 'gcp2.bigquery;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudDataflowBlock' : ss + 'gcp2.cloud_dataflow;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudDataprocBlock' : ss + 'gcp2.cloud_dataproc;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudDatalabBlock' : ss + 'gcp2.cloud_datalab;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudPubSubBlock' : ss + 'gcp2.cloud_pubsub;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconGenomicsBlock' : ss + 'gcp2.genomics;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudMachineLearningServicesBlock' : ss + 'gcp2.cloud_machine_learning;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconVisionAPIBlock' : ss + 'gcp2.cloud_vision_api;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconSpeechAPIBlock' : ss + 'gcp2.cloud_speech_api;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconNaturalLanguageAPIBlock' : ss + 'gcp2.cloud_natural_language_api;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconTranslateAPIBlock' : ss + 'gcp2.cloud_translation_api;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconStackdriverOverviewBlock' : ss + 'gcp2.stackdriver;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconMonitoringBlock' : ss + 'gcp2.cloud_deployment_manager;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconLoggingBlock' : ss + 'gcp2.logging;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconErrorReportingBlock' : ss + 'gcp2.error_reporting;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconTraceBlock' : ss + 'gcp2.trace;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconDebuggerBlock' : ss + 'gcp2.debugger;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconDeploymentManagerBlock' : ss + 'gcp2.cloud_deployment_manager;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudEndpointsBlock' : ss + 'gcp2.cloud_endpoints;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudToolsForPowerShellBlock' : ss + 'gcp2.cloud_tools_for_powershell;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudToolsForVisualStudioBlock' : ss + 'gcp2.cloud_tools_for_powershell;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconCloudIAMBlock' : ss + 'gcp2.cloud_iam;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconGCPLogoBlock' : ss + 'gcp2.placeholder;verticalLabelPosition=bottom;verticalAlign=top',
-			'GCPIconBlankBlock' : ss + 'gcp2.blue_hexagon;verticalLabelPosition=bottom;verticalAlign=top',
+			'GCPIconCloudLoadBalancingBlock' : gcpIcon + 'cloud_load_balancing',
+			'GCPIconCloudCDNBlock' : gcpIcon + 'cloud_cdn',
+			'GCPIconCloudInterconnectBlock' : gcpIcon + 'dedicated_interconnect',
+			'GCPIconCloudInterconnectBlock2' : gcpIcon + 'dedicated_interconnect',
+			'GCPIconCloudDNSBlock' : gcpIcon + 'cloud_dns',
+			'GCPIconBigQueryBlock' : gcpIcon + 'bigquery',
+			'GCPIconCloudDataflowBlock' : gcpIcon + 'cloud_dataflow',
+			'GCPIconCloudDataprocBlock' : gcpIcon + 'cloud_dataproc',
+			'GCPIconCloudDatalabBlock' : gcpIcon + 'cloud_datalab',
+			'GCPIconCloudPubSubBlock' : gcpIcon + 'cloud_pubsub',
+			'GCPIconGenomicsBlock' : gcpIcon + 'genomics',
+			'GCPIconCloudMachineLearningServicesBlock' : gcpIcon + 'cloud_machine_learning',
+			'GCPIconCloudMachineLearningServicesBlock2' : gcpIcon + 'cloud_machine_learning',
+			'GCPIconVisionAPIBlock' : gcpIcon + 'cloud_vision_api',
+			'GCPIconVisionAPIBlock2' : gcpIcon + 'cloud_vision_api',
+			'GCPIconSpeechAPIBlock' : gcpIcon + 'cloud_speech_api',
+			'GCPIconSpeechAPIBlock2' : gcpIcon + 'cloud_speech_api',
+			'GCPIconNaturalLanguageAPIBlock' : gcpIcon + 'cloud_natural_language_api',
+			'GCPIconNaturalLanguageAPIBlock2' : gcpIcon + 'cloud_natural_language_api',
+			'GCPIconTranslateAPIBlock' : gcpIcon + 'cloud_translation_api',
+			'GCPIconTranslateAPIBlock2' : gcpIcon + 'cloud_translation_api',
+			'GCPIconStackdriverOverviewBlock' : gcpIcon + 'stackdriver',
+			'GCPIconStackdriverOverviewBlock2' : gcpIcon + 'stackdriver',
+			'GCPIconMonitoringBlock' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconLoggingBlock' : gcpIcon + 'logging',
+			'GCPIconErrorReportingBlock' : gcpIcon + 'error_reporting',
+			'GCPIconTraceBlock' : gcpIcon + 'trace',
+			'GCPIconDebuggerBlock' : gcpIcon + 'debugger',
+			'GCPIconDeploymentManagerBlock' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconDeploymentManagerBlock2' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconCloudEndpointsBlock' : gcpIcon + 'cloud_endpoints',
+			'GCPIconCloudToolsForPowerShellBlock' : gcpIcon + 'cloud_tools_for_powershell',
+			'GCPIconCloudToolsForVisualStudioBlock' : gcpIcon + 'cloud_tools_for_powershell',
+			'GCPIconCloudIAMBlock' : gcpIcon + 'cloud_iam',
+			'GCPIconGCPLogoBlock' : gcpIcon + 'placeholder',
+			'GCPIconGCPLogoBlock2' : gcpIcon + 'placeholder',
+			'GCPIconBlankBlock' : gcpIcon + 'blue_hexagon',
+			'GCPIconBlankBlock2' : gcpIcon + 'blue_hexagon',
+			'GCPIconAPIAnalyticsBlock' : gcpIcon + 'api_analytics',
+			'GCPIconApigeeAPIPlatformBlock' : gcpIcon + 'apigee_api_platform',
+			'GCPIconApigeeSenseBlock' : gcpIcon + 'apigee_sense',
+			'GCPIconAPIMonetizationBlock' : gcpIcon + 'api_monetization',
+			'GCPIconCloudEndpointsBlock2' : gcpIcon + 'cloud_endpoints',
+			'GCPIconDeveloperPortalBlock' : gcpIcon + 'developer_portal',
+			'GCPIconBigQueryBlock2' : gcpIcon + 'bigquery',
+			'GCPIconCloudComposerBlock' : gcpIcon + 'cloud_composer',
+			'GCPIconCloudDataflowBlock2' : gcpIcon + 'cloud_dataflow',
+			'GCPIconCloudDatalabBlock2' : gcpIcon + 'cloud_datalab',
+			'GCPIconCloudDataprepBlock' : gcpIcon + 'cloud_dataprep',
+			'GCPIconCloudDataprocBlock2' : gcpIcon + 'cloud_dataproc',
+			'GCPIconCloudPubSubBlock2' : gcpIcon + 'cloud_pubsub',
+			'GCPIconDataStudioBlock' : gcpIcon + 'data_studio',
+			'GCPIconGenomicsBlock2' : gcpIcon + 'genomics',
+			'GCPIconAdvancedSolutionsLabBlock' : gcpIcon + 'advanced_solutions_lab',
+			'GCPIconCloudAutoMLBlock' : gcpIcon + 'cloud_automl',
+			'GCPIconCloudNaturalLanguageAPIBlock' : gcpIcon + 'cloud_natural_language_api',
+			'GCPIconCloudJobsAPIBlock' : gcpIcon + 'cloud_jobs_api',
+			'GCPIconCloudTPUBlock' : gcpIcon + 'cloud_tpu',
+			'GCPIconCloudMachineLearningBlock' : gcpIcon + 'cloud_machine_learning',
+			'GCPIconCloudVisionAPIBlock' : gcpIcon + 'cloud_vision_api',
+			'GCPIconCloudTranslationAPIBlock' : gcpIcon + 'cloud_translation_api',
+			'GCPIconDialogflowEnterpriseEditionBlock' : gcpIcon + 'dialogflow_enterprise_edition',
+			'GCPIconCloudSpeechAPIBlock' : gcpIcon + 'cloud_speech_api',
+			'GCPIconCloudTexttoSpeechBlock' : gcpIcon + 'cloud_text_to_speech',
+			'GCPIconCloudVideoIntelligenceAPIBlock' : gcpIcon + 'cloud_video_intelligence_api',
+			'GCPIconAppEngineBlock2' : gcpIcon + 'app_engine',
+			'GCPIconCloudToolsforVisualStudioBlock' : gcpIcon + 'cloud_tools_for_powershell',
+			'GCPIconCloudDeploymentManagerBlock' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconCloudFunctionsBlock2' : gcpIcon + 'cloud_functions',
+			'GCPIconContainerBuilderBlock' : gcpIcon + 'container_builder',
+			'GCPIconCloudSDKBlock' : gcpIcon + 'placeholder',
+			'GCPIconCloudSourceRepositoriesBlock' : gcpIcon + 'placeholder',
+			'GCPIconContainerRegistryBlock2' : gcpIcon + 'container_registry',
+			'GCPIconCloudTestLabBlock' : gcpIcon + 'placeholder',
+			'GCPIconGPUBlock' : gcpIcon + 'gpu',
+			'GCPIconContainerEngineBlock2' : gcpIcon + 'container_engine',
+			'GCPIconTransferApplianceBlock' : gcpIcon + 'transfer_appliance',
+			'GCPIconCloudToolsforPowerShellBlock' : gcpIcon + 'cloud_tools_for_powershell',
+			'GCPIconCloudToolsforIntelliJBlock' : gcpIcon + 'placeholder',
+			'GCPIconCloudToolsforAndroidStudioBlock' : gcpIcon + 'placeholder',
+			'GCPIconGooglePluginforEclipseBlock' : gcpIcon + 'placeholder',
+			'GCPIconContainerOptimizedOSBlock' : gcpIcon + 'container_optimized_os',
+			'GCPIconComputeEngineBlock2' : gcpIcon + 'compute_engine',
+			'GCPIconBeyondCorpBlock' : gcpIcon + 'beyondcorp',
+			'GCPIconCloudIAMBlock2' : gcpIcon + 'cloud_iam',
+			'GCPIconCloudResourceManagerBlock' : gcpIcon + 'cloud_iam',
+			'GCPIconCloudSecurityCommandCenterBlock' : gcpIcon + 'cloud_security_command_center',
+			'GCPIconCloudSecurityScannerBlock' : gcpIcon + 'cloud_security_scanner',
+			'GCPIconDataLossPreventionAPIBlock' : gcpIcon + 'data_loss_prevention_api',
+			'GCPIconIdentityAwareProxyBlock' : gcpIcon + 'identity_aware_proxy',
+			'GCPIconKeyManagementServiceBlock' : gcpIcon + 'key_management_service',
+			'GCPIconSecurityKeyEnforcementBlock' : gcpIcon + 'security_key_enforcement',
+			'GCPIconCloudIoTCoreBlock' : gcpIcon + 'cloud_iot_core',
+			'GCPIconCloudAPIsBlock' : gcpIcon + 'cloud_apis',
+			'GCPIconCloudBillingAPIBlock' : gcpIcon + 'placeholder',
+			'GCPIconCloudConsoleBlock' : gcpIcon + 'placeholder',
+			'GCPIconCloudDeploymentManagerBlock2' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconCloudMobileAppBlock' : gcpIcon + 'placeholder',
+			'GCPIconCloudShellBlock' : gcpIcon + 'placeholder',
+			'GCPIconDebuggerBlock2' : gcpIcon + 'debugger',
+			'GCPIconErrorReportingBlock2' : gcpIcon + 'error_reporting',
+			'GCPIconLoggingBlock2' : gcpIcon + 'logging',
+			'GCPIconMonitoringBlock2' : gcpIcon + 'cloud_deployment_manager',
+			'GCPIconStackdriverBlock' : gcpIcon + 'stackdriver',
+			'GCPIconTraceBlock2' : gcpIcon + 'trace',
+			'GCPIconCloudArmorBlock' : gcpIcon + 'cloud_armor',
+			'GCPIconCloudCDNBlock2' : gcpIcon + 'cloud_cdn',
+			'GCPIconCloudDNSBlock2' : gcpIcon + 'cloud_dns',
+			'GCPIconCloudExternalIPAddressesBlock' : gcpIcon + 'cloud_external_ip_addresses',
+			'GCPIconCloudFirewallRulesBlock' : gcpIcon + 'cloud_firewall_rules',
+			'GCPIconCloudLoadBalancingBlock2' : gcpIcon + 'cloud_load_balancing',
+			'GCPIconCloudNetworkBlock' : gcpIcon + 'cloud_network',
+			'GCPIconCloudRouterBlock' : gcpIcon + 'cloud_router',
+			'GCPIconCloudRoutesBlock' : gcpIcon + 'cloud_routes',
+			'GCPIconCloudVPNBlock' : gcpIcon + 'cloud_vpn',
+			'GCPIconDedicatedInterconnectBlock' : gcpIcon + 'dedicated_interconnect',
+			'GCPIconPartnerInterconnectBlock' : gcpIcon + 'partner_interconnect',
+			'GCPIconPremiumNetworkTierBlock' : gcpIcon + 'premium_network_tier',
+			'GCPIconStandardNetworkTierBlock' : gcpIcon + 'standard_network_tier',
+			'GCPIconVirtualPrivateCloudBlock' : gcpIcon + 'virtual_private_cloud',
+			'GCPIconCloudBigtableBlock2' : gcpIcon + 'cloud_bigtable',
+			'GCPIconCloudDatastoreBlock2' : gcpIcon + 'cloud_datastore',
+			'GCPIconCloudFilestoreBlock' : gcpIcon + 'cloud_filestore',
+			'GCPIconCloudMemorystoreBlock' : gcpIcon + 'cloud_memorystore',
+			'GCPIconCloudSpannerBlock' : gcpIcon + 'cloud_spanner',
+			'GCPIconCloudSQLBlock2' : gcpIcon + 'cloud_sql',
+			'GCPIconCloudStorageBlock2' : gcpIcon + 'cloud_storage',
+			'GCPIconPersistentDiskBlock2' : gcpIcon + 'persistent_disk',
+			'GCPIconGoogleCloudPlatformBlock' : gcpIcon + 'google_cloud_platform',
+			'GCPIconBlueHexagonBlock' : gcpIcon + 'blue_hexagon',
+			'GCPIconGenericBlock' : gcpIcon + 'placeholder',
+			'GCPIconPredictionAPIBlock' : gcpIcon + 'prediction_api',
+			//'GCPGoogleCloudPlatformLockupBlock' : gcpIcon + 'gcp_google_cloud_platform_lockup',
+			
+//Kubernetes Icons
+			'CronjobLabeledKub19' : kupIcon + 'cronjob',
+			'CronjobKub19' : kupIcon + 'cronjob',
+			'DeployLabeledKub19' : kupIcon + 'deploy',
+			'DeployKub19' : kupIcon + 'deploy',
+			'DsLabeledKub19' : kupIcon + 'ds',
+			'DsKub19' : kupIcon + 'ds',
+			'JobLabeledKub19' : kupIcon + 'job',
+			'JobKub19' : kupIcon + 'job',
+			'PodLabeledKub19' : kupIcon + 'pod',
+			'PodKub19' : kupIcon + 'pod',
+			'RsLabeledKub19' : kupIcon + 'rs',
+			'RsKub19' : kupIcon + 'rs',
+			'StsLabeledKub19' : kupIcon + 'sts',
+			'StsKub19' : kupIcon + 'sts',
+			'PvLabeledKub19' : kupIcon + 'pv',
+			'PvKub19' : kupIcon + 'pv',
+			'PvcLabeledKub19' : kupIcon + 'pvc',
+			'PvcKub19' : kupIcon + 'pvc',
+			'ScLabeledKub19' : kupIcon + 'sc',
+			'ScKub19' : kupIcon + 'sc',
+			'VolLabeledKub19' : kupIcon + 'vol',
+			'VolKub19' : kupIcon + 'vol',
+			'EpLabeledKub19' : kupIcon + 'ep',
+			'EpKub19' : kupIcon + 'ep',
+			'IngLabeledKub19' : kupIcon + 'ing',
+			'IngKub19' : kupIcon + 'ing',
+			'NetpolLabeledKub19' : kupIcon + 'netpol',
+			'NetpolKub19' : kupIcon + 'netpol',
+			'SvcLabeledKub19' : kupIcon + 'svc',
+			'SvcKub19' : kupIcon + 'svc',
+			'CrdLabeledKub19' : kupIcon + 'crd',
+			'CrdKub19' : kupIcon + 'crd',
+			'CroleLabeledKub19' : kupIcon + 'c_role',
+			'CroleKub19' : kupIcon + 'c_role',
+			'GroupLabeledKub19' : kupIcon + 'group',
+			'GroupKub19' : kupIcon + 'group',
+			'RbLabeledKub19' : kupIcon + 'rb',
+			'RbKub19' : kupIcon + 'rb',
+			'RoleLabeledKub19' : kupIcon + 'role',
+			'RoleKub19' : kupIcon + 'role',
+			'SaLabeledKub19' : kupIcon + 'sa',
+			'SaKub19' : kupIcon + 'sa',
+			'UserLabeledKub19' : kupIcon + 'user',
+			'UserKub19' : kupIcon + 'user',
+			'CmResourceLabeledKub19' : kupIcon + 'cm',
+			'CmKub19' : kupIcon + 'cm',
+			'SecretLabeledKub19' : kupIcon + 'secret',
+			'SecretKub19' : kupIcon + 'secret',
+			'HpaLabeledKub19' : kupIcon + 'hpa',
+			'HpaKub19' : kupIcon + 'hpa',
+			'LimitsLabeledKub19' : kupIcon + 'limits',
+			'LimitsKub19' : kupIcon + 'limits',
+			'QuotaLabeledKub19' : kupIcon + 'quota',
+			'QuotaKub19' : kupIcon + 'quota',
+			'CrbLabeledKub19' : kupIcon + 'crb',
+			'CrbKub19' : kupIcon + 'crb',
+			'LogoKub19' : 'aspect=fixed;html=1;align=center;image;image=img/lib/mscae/Kubernetes.svg',
+			'NsLabeledKub19' : kupIcon + 'ns',
+			'NsKub19' : kupIcon + 'ns',
+			'PspLabeledKub19' : kupIcon + 'psp',
+			'PspKub19' : kupIcon + 'psp',
+			'EtcdLabeledKub19' : kupIcon + 'etcd',
+			'EtcdKub19' : kupIcon + 'etcd',
+			'MasterLabeledKub19' : kupIcon + 'master',
+			'MasterKub19' : kupIcon + 'master',
+			'NodeLabeledKub19' : kupIcon + 'node',
+			'NodeKub19' : kupIcon + 'node',
+			'ApiLabeledKub19' : kupIcon + 'api',
+			'CcmLabeledKub19' : kupIcon + 'c_c_m',
+			'CmLabeledKub19' : kupIcon + 'c_m',
+			'KproxyLabeledKub19' : kupIcon + 'node',
+			'KubeletLabeledKub19' : kupIcon + 'kubelet',
+			'SchedLabeledKub19' : kupIcon + 'sched',
 //Equation
 			'Equation' : cs, //TODO
 //Walls
@@ -1452,16 +2145,16 @@ LucidImporter = {};
 			'fpCubicleDouble14x8' : s + 'floorplan.wallU;wallThickness=3',
 			'fpCubicleEnclosed11x9' : s + 'floorplan.wallU;wallThickness=3',
 //Tables & Chairs
-			'fpTableConferenceOval' : 'shape=ellipse',
+			'fpTableConferenceOval' : 'ellipse',
 			'fpTableConferenceBoat' : '',
 			'fpTableConferenceRectangle' : '',
-			'fpTableDiningRound' : 'shape=ellipse',
+			'fpTableDiningRound' : 'ellipse',
 			'fpTableDiningSquare' : '',
 			'fpChairOffice' : s + 'floorplan.office_chair',
 			'fpChairExecutive' : s + 'floorplan.office_chair',
 			'fpChairLobby' : s + 'floorplan.office_chair',
 			'fpChairDining' : s + 'floorplan.chair',
-			'fpChairBarstool' : 'shape=ellipse',
+			'fpChairBarstool' : 'ellipse',
 //Cubicles - Prebuilt
 //Tables - Prebuilt
 //Cabinets - we don't have corresponding stencils, just rounded rectangles			
@@ -1507,7 +2200,7 @@ LucidImporter = {};
 //Appliances
 			'fpApplianceWasher' : '',
 			'fpApplianceDryer' : '',
-			'fpApplianceWaterHeater' : 'shape=ellipse',
+			'fpApplianceWaterHeater' : 'ellipse',
 //			'fpApplianceRefrigerator' NA
 			'fpApplianceStoveOven' : s + 'floorplan.range_1',
 			'fpStoveOvenSixBurner' : s + 'floorplan.range_2',
@@ -1592,8 +2285,8 @@ LucidImporter = {};
 			'PENuclear' : s + 'electrical.waveforms.sine_wave',
 //			'PEPneumatic' NA
 //			'PEHydraulicSignalLine' NA
-			'PEMechanicalLink' : 'shape=ellipse',
-			'PESolderedSolvent' : 'shape=ellipse',
+			'PEMechanicalLink' : 'ellipse',
+			'PESolderedSolvent' : 'ellipse',
 			'PEDoubleContainment' : 'shape=hexagon;perimeter=hexagonPerimeter2',
 			'PEFlange' : s + 'pid.piping.double_flange',
 			'PEFlange2' : s + 'pid.piping.flange_in;flipH=1',
@@ -1721,23 +2414,23 @@ LucidImporter = {};
 //			'PEOrificeBlock' NA
 			'PERotameterBlock' : s + 'pid.flow_sensors.rotameter;flipH=1;verticalLabelPosition=bottom;verticalAlign=top',
 //Venn Gradient
-			'VennGradientColor1' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor2' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor3' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor4' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor5' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor6' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor7' : 'shape=ellipse;fillOpacity=35',
-			'VennGradientColor8' : 'shape=ellipse;fillOpacity=35',
+			'VennGradientColor1' : 'ellipse;fillOpacity=35',
+			'VennGradientColor2' : 'ellipse;fillOpacity=35',
+			'VennGradientColor3' : 'ellipse;fillOpacity=35',
+			'VennGradientColor4' : 'ellipse;fillOpacity=35',
+			'VennGradientColor5' : 'ellipse;fillOpacity=35',
+			'VennGradientColor6' : 'ellipse;fillOpacity=35',
+			'VennGradientColor7' : 'ellipse;fillOpacity=35',
+			'VennGradientColor8' : 'ellipse;fillOpacity=35',
 //Venn Plain
-			'VennPlainColor1' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor2' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor3' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor4' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor5' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor6' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor7' : 'shape=ellipse;fillOpacity=35',
-			'VennPlainColor8' : 'shape=ellipse;fillOpacity=35',
+			'VennPlainColor1' : 'ellipse;fillOpacity=35',
+			'VennPlainColor2' : 'ellipse;fillOpacity=35',
+			'VennPlainColor3' : 'ellipse;fillOpacity=35',
+			'VennPlainColor4' : 'ellipse;fillOpacity=35',
+			'VennPlainColor5' : 'ellipse;fillOpacity=35',
+			'VennPlainColor6' : 'ellipse;fillOpacity=35',
+			'VennPlainColor7' : 'ellipse;fillOpacity=35',
+			'VennPlainColor8' : 'ellipse;fillOpacity=35',
 //iOS Devices
 			'iOS7DeviceiPhone5Portrait' : s + 'ios.iPhone;bgStyle=bgGreen', //TODO
 			'iOS7DeviceiPhone5Landscape' : s + 'ios.iPhone;bgStyle=bgGreen', //TODO
@@ -1971,12 +2664,12 @@ LucidImporter = {};
 			'Image_ipad_arrow_icon' : s + 'ios.iArrowIcon;fillColor=#8BbEff;fillColor2=#135Ec8;strokeColor=#ffffff',
 			'Image_ipad_arrow' : s + 'ios7.misc.more',
 			'Image_ipad_checkmark' : s + 'ios7.misc.check',
-			'Image_ipad_check_off' : 'shape=ellipse', //TODO
-			'Image_ipad_location_dot' : 'shape=ellipse',
-			'Image_ipad_mark_as_read' : 'shape=ellipse',
+			'Image_ipad_check_off' : 'ellipse', //TODO
+			'Image_ipad_location_dot' : 'ellipse',
+			'Image_ipad_mark_as_read' : 'ellipse',
 			'Image_ipad_pin_green' : s + 'ios.iPin;fillColor2=#00dd00;fillColor3=#004400;strokeColor=#006600',
 			'Image_ipad_pin_red' : s + 'ios.iPin;fillColor2=#dd0000;fillColor3=#440000;strokeColor=#660000',
-			'Image_ipad_radio_off' : 'shape=ellipse', //TODO
+			'Image_ipad_radio_off' : 'ellipse', //TODO
 			'Image_ipad_checkbox_off' : 'absoluteArcSize=1;arcSize=' + arcSize + ';rounded=1', //TODO
 			'Image_ipad_indicator' : 'absoluteArcSize=1;arcSize=' + arcSize + ';rounded=1;fillColor=#e8878E;gradientColor=#BD1421;strokeColor=#ffffff',
 //iOS 6 iPhone Elements
@@ -2037,12 +2730,12 @@ LucidImporter = {};
 			'Image_iphone_arrow_icon' : s + 'ios.iArrowIcon;fillColor=#8BbEff;fillColor2=#135Ec8;strokeColor=#ffffff',
 			'Image_iphone_arrow' : s + 'ios7.misc.more',
 			'Image_iphone_checkmark' : s + 'ios7.misc.check',
-			'Image_iphone_check_off' : 'shape=ellipse', //TODO
-			'Image_iphone_location_dot' : 'shape=ellipse',
-			'Image_iphone_mark_as_read' : 'shape=ellipse',
+			'Image_iphone_check_off' : 'ellipse', //TODO
+			'Image_iphone_location_dot' : 'ellipse',
+			'Image_iphone_mark_as_read' : 'ellipse',
 			'Image_iphone_pin_green' : s + 'ios.iPin;fillColor2=#00dd00;fillColor3=#004400;strokeColor=#006600',
 			'Image_iphone_pin_red' : s + 'ios.iPin;fillColor2=#dd0000;fillColor3=#440000;strokeColor=#660000',
-			'Image_iphone_radio_off' : 'shape=ellipse', //TODO
+			'Image_iphone_radio_off' : 'ellipse', //TODO
 			'Image_iphone_checkbox_off' : '', //TODO
 			'Image_iphone_indicator' : 'fillColor=#e8878E;gradientColor=#BD1421;strokeColor=#ffffff',
 			'Image_iphone_thread_count' : '',
@@ -2438,6 +3131,8 @@ LucidImporter = {};
 			'AmazonRedshift_DenseStorageNodeAWS19' : 'shape=mxgraph.aws4.dense_storage_node;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSGlue_CrawlersAWS19' : 'shape=mxgraph.aws4.glue_crawlers;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSGlue_DataCatalogAWS19' : 'shape=mxgraph.aws4.glue_data_catalog;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonEMR_HDFSClusterAWS19' : 'shape=mxgraph.aws4.cluster;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSDataLake_ResourceAWS19' : 'shape=mxgraph.aws4.data_lake_resource_icon;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			
 // AWS 19 - Application Integration			
 			'ApplicationIntegrationAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.application_integration;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2451,6 +3146,9 @@ LucidImporter = {};
 			'AmazonSimpleNotificationServiceSNS_TopicAWS19' : 'shape=mxgraph.aws4.topic;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonSimpleQueueServiceSQS_MessageAWS19' : 'shape=mxgraph.aws4.message;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonSimpleQueueServiceSQS_QueueAWS19' : 'shape=mxgraph.aws4.queue;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonAPIGateway_EndpointAWS19' : 'shape=mxgraph.aws4.endpoint;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonEventBridgeAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			'AWSElementalAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elemental;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			
 // AWS 19 - AR & VR			
 			'ARVRAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ar_vr;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2538,6 +3236,7 @@ LucidImporter = {};
 			'AmazonRedshift_DenseComputeNode_blueAWS19' : 'shape=mxgraph.aws4.dense_compute_node;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonRedshift_DenseStorageNode_blueAWS19' : 'shape=mxgraph.aws4.dense_storage_node;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSDatabaseMigrationService_DatabaseMigrationWorkflowAWS19' : 'shape=mxgraph.aws4.database_migration_workflow_job;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonDynamoDBDAXAWS19' : 'shape=mxgraph.aws4.dynamodb_dax;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			
 // AWS 19 - Desktop App Streaming			
 			'DesktopandAppStreamingAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.desktop_and_app_streaming;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2555,6 +3254,7 @@ LucidImporter = {};
 			'AWSCommandLineInterfaceAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.command_line_interface;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSToolsAndSDKsAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.tools_and_sdks;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSXRayAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.xray;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			'AWSCloudDevelopmentKitAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloud_development_kit;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			
 // AWS 19 - EC2 Instance Types
 			'AmazonEC2_InstanceAWS19' : 'shape=mxgraph.aws4.instance2;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
@@ -2588,6 +3288,8 @@ LucidImporter = {};
 			'AmazonEC2_X1InstanceAWS19' : 'shape=mxgraph.aws4.x1_instance2;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonEC2_z1dInstanceAWS19' : 'shape=mxgraph.aws4.z1d_instance;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 
+			'AmazonWorkLinkAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.worklink;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			
 // AWS 19 - Game Tech			
 			'GameTechAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.game_tech;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AmazonGameLiftAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.gamelift;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
@@ -2623,10 +3325,10 @@ LucidImporter = {};
 			'AWSCloudaltAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fillColor=none',
 			'RegionAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;dashed=1;fontColor=#0E82B8;fillColor=none',
 			'AvailabilityZoneAWS19_v2' : 'verticalAlign=top;fillColor=none;fillOpacity=100;dashed=1;dashPattern=5 5;fontColor=#0E82B8',
-			'SecuritygroupAWS19_v2' : 'verticalAlign=top;fillColor=none;fillOpacity=100;fontColor=#DD3522',
+			'SecuritygroupAWS19_v2' : 'verticalAlign=top;fillColor=none;fillOpacity=100',
 			'AutoScalingAWS19_v2' : 'shape=mxgraph.aws4.groupCenter;grIcon=mxgraph.aws4.group_auto_scaling_group;grStroke=1;verticalAlign=top;fillColor=none;fillOpacity=100;fontColor=#D75F17;spacingTop=25;fillColor=none',
 			'VirtualprivatecloudVPCAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fontColor=#2C8723;fillColor=none',
-			'PrivateSubnetAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;strokeColor=#0E82B8;fontColor=#0E82B8;fillColor=none',
+			'PrivateSubnetAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;strokeColor=#0E82B8;fillColor=none',
 			'PublicSubnetAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;grStroke=0;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;strokeColor=#2C8723;fontColor=#2C8723;fillColor=none',
 			'ServercontentsAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_on_premise;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fontColor=#5A6C86;fillColor=none',
 			'CorporatedatacenterAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_corporate_data_center;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fontColor=#5A6C86;fillColor=none',
@@ -2635,7 +3337,7 @@ LucidImporter = {};
 			'SpotFleetAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_spot_fleet;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fontColor=#D75F17;fillColor=none',
 			'AWSStepFunctionAWS19_v2' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_step_functions_workflow;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fontColor=#CB1261;fillColor=none',
 			'GenericGroup1AWS19_v2' : 'verticalAlign=top;align=center;fillColor=none;fillOpacity=100;dashed=1;dashPattern=5 5;strokeColor=#5A6C86;fontColor=#5A6C86',
-			'GenericGroup2AWS19_v2' : 'verticalAlign=top;align=center;fillOpacity=100;fillColor=#EAECEF',
+			'GenericGroup2AWS19_v2' : 'verticalAlign=top;align=center',
 
 			//Repeated from the above
 			'AWSCloudAWS19' : 'shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;verticalAlign=top;align=left;spacingLeft=30;fillOpacity=100;fillColor=none',
@@ -2713,6 +3415,9 @@ LucidImporter = {};
 			'IoT_TravelAWS19' : 'shape=mxgraph.aws4.travel;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'IoT_UtilityAWS19' : 'shape=mxgraph.aws4.utility;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'IoT_WindfarmAWS19' : 'shape=mxgraph.aws4.windfarm;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSIoTGreengrass_ConnectorAWS19' : 'shape=mxgraph.aws4.connector;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSIoTAnalytics_DataSetAWS19' : 'shape=mxgraph.aws4.data_set;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSIoTAnalytics_NotebookAWS19' : 'shape=mxgraph.aws4.notebook;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			
 // AWS 19 - Machine Learning			
 			'MachineLearningAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.machine_learning;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2736,6 +3441,9 @@ LucidImporter = {};
 			'AmazonSageMaker_ModelAWS19' : 'shape=mxgraph.aws4.sagemaker_model;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonSageMaker_NotebookAWS19' : 'shape=mxgraph.aws4.sagemaker_notebook;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonSageMaker_TrainAWS19' : 'shape=mxgraph.aws4.sagemaker_train;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonRekognition_ImageAWS19' : 'shape=mxgraph.aws4.rekognition_image;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonRekognition_VideoAWS19' : 'shape=mxgraph.aws4.rekognition_video;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSDeepLearningContainersAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.deep_learning_containers;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			
 // AWS 19 - Management & Governance			
 			'ManagementandGovernanceAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.management_and_governance;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2783,6 +3491,8 @@ LucidImporter = {};
 			'AWSTrustedAdvisor_ChecklistFaultTolerantAWS19' : 'shape=mxgraph.aws4.checklist_fault_tolerant;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSTrustedAdvisor_ChecklistPerformanceAWS19' : 'shape=mxgraph.aws4.checklist_performance;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSTrustedAdvisor_ChecklistSecurityAWS19' : 'shape=mxgraph.aws4.checklist_security;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSOrganizationsAWS19_v2' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.organizations;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			'AWSSystemsManagerOpsCenterAWS19' : 'shape=mxgraph.aws4.systems_manager_opscenter;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			
 // AWS 19 - Media Services			
 			'MediaServicesAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.media_services;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2806,7 +3516,7 @@ LucidImporter = {};
 			'AWSSnowballEdgeAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.snowball_edge;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSSnowmobileAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.snowmobile;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSTransferforSFTPAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.transfer_for_sftp;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
-			
+			'AWSDataSync_AgentAWS19' : 'shape=mxgraph.aws4.agent2;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 // AWS 19 - Mobile			
 			'MobileAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.mobile;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
 			'AmazonAPIGatewayAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
@@ -2845,6 +3555,13 @@ LucidImporter = {};
 			'AmazonVPC_RouterAWS19' : 'shape=mxgraph.aws4.router;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonVPC_VPNConnectionAWS19' : 'shape=mxgraph.aws4.vpn_connection;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AmazonVPC_VPNGatewayAWS19' : 'shape=mxgraph.aws4.vpn_gateway;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonNetworkingAPIGateway_EndpointAWS19' : 'shape=mxgraph.aws4.endpoint;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonVPCTrafficMirroringAWS19' : 'shape=mxgraph.aws4.vpc_traffic_mirroring;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSSitetoSiteVPNAWS19' : 'shape=mxgraph.aws4.site_to_site_vpn;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'ElasticLoadBalancing_ApplicationloadbalancerAWS19' : 'shape=mxgraph.aws4.application_load_balancer;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'ElasticLoadBalancingELBAWS19_v2' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_load_balancing;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			'ElasticLoadBalancing_ClassicloadbalancerAWS19' : 'shape=mxgraph.aws4.classic_load_balancer;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'ElasticLoadBalancing_NetworkloadbalancerAWS19' : 'shape=mxgraph.aws4.network_load_balancer;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			
 // AWS 19 - Robotics		
 			'RoboticsAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.robotics;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2856,7 +3573,7 @@ LucidImporter = {};
 			
 // AWS 19 - Satellite			
 			'SatelliteAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.satellite;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
-//			'AWSGroundStationAWS19' : '',
+			'AWSGroundStationAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ground_station;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			
 // AWS 19 - Security, Identity & Compliance			
 			'SecurityIdentityandComplianceAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.security_identity_and_compliance;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
@@ -2873,7 +3590,6 @@ LucidImporter = {};
 			'AWSIdentityandAccessManagement_IAMAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.identity_and_access_management;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSKeyManagementServiceAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.key_management_service;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSOrganizationsAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.organizations;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
-//			'AWSResourceAccessManagerAWS19' : '',
 			'AWSSecretsManagerAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.secrets_manager;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSSecurityHubAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.security_hub;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			'AWSShieldAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.shield;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
@@ -2895,7 +3611,12 @@ LucidImporter = {};
 			'AWSOrganizations_OrganizationalUnitAWS19' : 'shape=mxgraph.aws4.organizations_organizational_unit;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSShield_ShieldAdvancedAWS19' : 'shape=mxgraph.aws4.shield_shield_advanced;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSWAF_FilteringruleAWS19' : 'shape=mxgraph.aws4.filtering_rule;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
-
+			'AWSADConnectorAWS19' : 'shape=mxgraph.aws4.ad_connector;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSSimpleADAWS19' : 'shape=mxgraph.aws4.simple_ad;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSManagedMicrosoftADAWS19' : 'shape=mxgraph.aws4.managed_ms_ad;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AWSResourceAccessManagerAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.resource_access_manager;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			
+			
 // AWS 19 - Storage
 			'StorageAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.storage;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top',
 			'AmazonElasticBlockStoreEBSAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elastic_block_store;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
@@ -2921,6 +3642,9 @@ LucidImporter = {};
 			'AWSStorageGateway_CachedVolumeAWS19' : 'shape=mxgraph.aws4.cached_volume;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSStorageGateway_NonCachedVolumeAWS19' : 'shape=mxgraph.aws4.non_cached_volume;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
 			'AWSStorageGateway_VirtualTapeLibraryAWS19' : 'shape=mxgraph.aws4.virtual_tape_library;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'AmazonElasticFileSystem_EFS_FilesystemAWS19' : 'shape=mxgraph.aws4.file_system;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=none',
+			'EFSInfrequentAccessAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.efs_infrequentaccess;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
+			'EFSStandardAWS19' : 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.efs_standard;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;strokeColor=#ffffff',
 			
 // GCP - Service Cards			
 			'GCPServiceCardApplicationSystemBlock' : cs,
@@ -3013,13 +3737,346 @@ LucidImporter = {};
 			'SMProfile' : s + 'sitemap.profile;strokeColor=#000000;fillColor=#E6E6E6',
 			'SMSlideshow' : s + 'sitemap.slideshow;strokeColor=#000000;fillColor=#E6E6E6',
 			'SMUpload' : s + 'sitemap.upload;strokeColor=#000000;fillColor=#E6E6E6',
+//SVG shapes
+			'SVGPathBlock2' : cs,
 //Special cases
-			'PresentationFrameBlock' : cs
+			'PresentationFrameBlock' : cs,
+//Timeline
+//TODO Timeline shapes are postponed, this code is a work-in-progress
+			//'TimelineBlock' : cs,
+			//'TimelineMilestoneBlock' : cs,
+			//'TimelineIntervalBlock' : cs,
+			'MinimalTextBlock' : 'strokeColor=none'
 	};
 	
 	// actual code start
+	//TODO This can be optimized more
+	function convertTxt2Html(txt, m)
+	{
+		var nlPos = [], p = -1, html = '';
+
+		while ((p = txt.indexOf('\n', p + 1)) > -1)
+		{
+			nlPos.push(p + 1);
+		}
+
+		m.sort(function(a, b)
+		{
+			return a.s - b.s;
+		});
+
+		var sMap = {}, ends = [];
+
+		for (var i = 0; i < m.length; i++) //TODO Using newlines to mark the end of blocks without end has some issues 
+		{
+			var item = m[i];
+			
+			if (sMap[item.s] == null)
+			{
+				for (var j = 0; j < nlPos.length; j++)
+				{
+					if (nlPos[j] > item.s)
+					{
+						sMap[item.s] = nlPos[j];
+						break;
+					}
+				}
+
+				if (sMap[item.s] == null)
+				{
+					sMap[item.s] = txt.length;
+				}
+			}
+
+			if (item.e == null)
+			{
+				item.e = sMap[item.s];
+			}
+
+			ends.push(item);
+		}
+
+		ends.sort(function(a, b)
+		{
+			return a.e - b.e;
+		});
+
+		var i = 0, j = 0, curStyles = {}, openTags = [], openTagsCount = [], listActive = false, listType, listItemActive = false;
+		
+		function startTag(styles, newBlock)
+		{
+			var str = '';
+			var tagCount = 0;
+			var t = styles['t'];
+
+			if (styles['lk'])
+			{
+				var lk = styles['lk'];
+				
+				if (lk.v != null && lk.v.length > 0 && lk.v[0].tp == 'ext')
+				{
+					str += '<a href="' + lk.v[0].url + '">';
+					openTags.push('a');
+					tagCount++;
+				}
+			}
+			
+			if (newBlock)
+			{
+				var l = styles['l'] || {};
+				
+				if (t != null && (listActive == false || listActive != t.v || listType != l.v))
+				{
+					if (listActive)
+					{
+						str += endTag();
+					}
+					
+					listActive = t.v;
+					listType = l.v;
+					
+					if (t.v == 'ul')
+					{
+						str += '<ul ';
+						openTags.push('ul');
+					}
+					else
+					{
+						str += '<ol ';
+						openTags.push('ol');
+					}
+					
+					openTagsCount.push(1);
+					str += 'style="margin: 0px; text-align:' + (styles['a']? styles['a'].v : 'left') + '; list-style-type:';
+					
+					if (t.v == 'hl')
+					{
+						str += 'upper-roman';
+					}
+					else
+					{
+						switch(l.v)
+						{
+							case 'auto':
+								str += 'disc';
+								break;
+							case 'inv': //Approx
+								str += 'circle';
+								break;
+							case 'disc': 
+								str += 'circle';
+								break;
+							case 'trib': //Approx
+								str += 'square';
+								break;
+							case 'square':
+								str += 'square';
+								break;	
+							case 'dash': //Approx
+								str += 'square';
+								break;	
+							case 'heart': //Approx
+								str += 'disc';
+								break;
+							default:
+								str += 'decimal';					
+						}
+					}
+					
+					str += '">';
+				}
+				else if (t == null)
+				{
+					if (listActive)
+					{
+						str += endTag();
+						listActive = false;
+					}
+
+					str += '<div style="';
+					openTags.push('div');
+					tagCount++;
+				}
+			}
+			else
+			{
+				if (listActive && !listItemActive)
+				{
+					str += endTag();
+					listActive = false;
+				}
+				
+				str += '<span style="';
+				openTags.push('span');
+				tagCount++;
+			}
+
+			if (newBlock && t != null)
+			{
+				listItemActive = true;
+				str += '<li>';
+				openTags.push('li');
+				tagCount++;
+				
+				str += '<span style="';
+				openTags.push('span');
+				tagCount++;
+			}
+
+			if (styles['s'])
+			{
+				str += 'font-size:' + Math.round(styles['s'].v * scale) + 'px;';
+			}
+
+			if (styles['c'])
+			{
+				var v = styles['c'].v;
+				
+				if (v != null)
+				{
+					if (v.charAt(0) != '#')
+					{
+						v = '#' + v;
+					}
+
+					v = v.substring(0, 7);
+					str += 'color:' + v + ';';
+				}
+			}
+
+			if ((styles['b'] && styles['b'].v) || (styles['fc'] && styles['fc'].v && styles['fc'].v.indexOf('Bold') == 0))
+			{
+				str += 'font-weight: bold;';
+			}
+			
+			if (styles['i'] && styles['i'].v)
+			{
+				str += 'font-style: italic;';
+			}
+
+			if (styles['u'] && styles['u'].v)
+			{
+				str += 'text-decoration: underline;';
+			}
+
+			if (!listActive)
+			{
+				str += 'text-align: ' + (styles['a']? styles['a'].v : 'center') + ';';
+			}
+			
+			if (styles['il'])
+			{
+				str += 'margin-left: ' + Math.round(styles['il'].v * scale - (listActive? 21 : 0)) + 'px;';
+			}
+
+			if (styles['ir'])
+			{
+				str += 'margin-right: ' + Math.round(styles['ir'].v * scale) + 'px;';
+			}
+
+			if (styles['mt'])
+			{
+				str += 'margin-top: ' + Math.round(styles['mt'].v * scale) + 'px;';
+			}
+
+			if (styles['mb'])
+			{
+				str += 'margin-bottom: ' + Math.round(styles['mb'].v * scale) + 'px;';
+			}
+
+			str += '">'
+			openTagsCount.push(tagCount);
+
+			return str;
+		};
+
+		function endTag(txt, curS, curE, all)
+		{
+			var str = txt? txt.substring(curS, curE) : '';
+
+			//TODO Check this is always the case. Most of the time this is correct, also, the empty tag should be removed
+			if (str == '\n')
+			{
+				str = '';
+			}
+			
+			str = str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+			
+			do
+			{
+				var count = openTagsCount.pop();
+	
+				for (var i = 0; i < count; i++) 
+				{
+					var tag = openTags.pop();
+					
+					if (tag == 'li')
+					{
+						listItemActive = false;
+					}
+					
+					str += '</' + tag + '>';
+				}
+			}
+			while(all && openTags.length > 0);
+
+			return str;
+		}
+		
+		var curS = 0, curE = 0;
+		
+		while(i >= j && (i < m.length || j < ends.length))
+		{
+			var s = m[i], e = ends[j];
+
+			if (s && e && s.s < e.e) //s can be null when all starts are used, e ends after s BUT sometimes there are errors in the file
+			{
+				curS = s.s;
+				var newBlock = false;
+
+				if (curS - curE > 0)
+				{
+					html += startTag(curStyles, newBlock) + endTag(txt, curE, curS); 
+				}
+				
+				while(s != null && s.s == curS)
+				{
+					//TODO alignment ('a') sometimes introduce unnecessary new lines. Maybe use newline to define block elements
+					if (s.n == 'a' || s.n == 'il' || s.n == 'ir' || s.n == 'mt' || s.n == 'mb' || s.n == 't')
+					{
+						newBlock = true;
+					}
+					
+					curStyles[s.n] = s;
+					s = m[++i];
+				}
+				
+				html += startTag(curStyles, newBlock);
+			}
+			else if (e)
+			{
+				curE = e.e;
+
+				do
+				{
+					delete curStyles[e.n];
+					e = ends[++j];
+				}
+				while(e != null && e.e == curE);
+				
+				html += endTag(txt, curS, curE);
+				curS = curE;
+			}
+		}
+		
+		html += endTag(null, null, null, true); //End any open tag
+
+		return html;
+	};
+	
 	function convertText(props)
 	{
+		isLastLblHTML = false;
 		var text = (props.Text != null) ? props.Text :
 			((props.Value != null) ? props.Value :
 			props.Lane_0);
@@ -3072,15 +4129,40 @@ LucidImporter = {};
 			}
 		}
 		
-		// TODO: Convert text object to HTML
+		// TODO: Convert text object to HTML. One case is covered. Is there others?
 		if (text != null)
 		{
 			if (text.t != null)
 			{
-				text.t = text.t.replace(/</g, '&lt;');
-				text.t = text.t.replace(/>/g, '&gt;');
+				var txt = text.t;
+				var m = text.m;
 				
-				return text.t;
+				//Convert text object to HTML if needed
+				try
+				{
+					for (var i = 0; i < m.length; i++)
+					{
+						if (m[i].s > 0)
+						{
+							isLastLblHTML = true;
+							break;
+						}
+					}
+					
+					if (isLastLblHTML)
+					{
+						return convertTxt2Html(txt, m);
+					}
+				}
+				catch(e)
+				{
+					console.log(e);
+				}
+				
+				txt = txt.replace(/</g, '&lt;');
+				txt = txt.replace(/>/g, '&gt;');
+				
+				return txt;
 			}
 			
 			if (text.Value != null)
@@ -3134,27 +4216,36 @@ LucidImporter = {};
 		{
 			return properties.m;
 		}
-
+		else if (properties.Title != null)
+		{
+			if (properties.Title.m != null)
+			{
+				return properties.Title.m;
+			}
+		}
+		
 		return null;
 	}
 	
-	function getLabelStyle(properties)
+	function getLabelStyle(properties, noLblStyle)
 	{
-		var style = getFontSize(properties) +
+		var style = (noLblStyle? 'overflow=width;html=1;' : 
+				getFontSize(properties) +
 				getFontColor(properties) + 
 				getFontStyle(properties) +
 				getTextAlignment(properties) + 
 				getTextLeftSpacing(properties) +
 				getTextRightSpacing(properties) + 
 				getTextTopSpacing(properties) +
-				getTextBottomSpacing(properties) + 
+				getTextBottomSpacing(properties) 
+			  ) + 
 				getTextGlobalSpacing(properties) +
 				getTextVerticalAlignment(properties);
 		
 		return style;  
 	}
 	
-	function addAllStyles(style, properties, action, cell)
+	function addAllStyles(style, properties, action, cell, noLblStyle)
 	{
 		var s = '';
 		
@@ -3164,6 +4255,7 @@ LucidImporter = {};
 		}
 		
 		s +=	
+		  (noLblStyle? 'overflow=width;html=1;' : 
 			addStyle(mxConstants.STYLE_FONTSIZE, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_FONTCOLOR, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_FONTSTYLE, style, properties, action, cell) +		
@@ -3171,7 +4263,8 @@ LucidImporter = {};
 			addStyle(mxConstants.STYLE_SPACING_LEFT, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_SPACING_RIGHT, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_SPACING_TOP, style, properties, action, cell) +			
-			addStyle(mxConstants.STYLE_SPACING_BOTTOM, style, properties, action, cell) +			
+			addStyle(mxConstants.STYLE_SPACING_BOTTOM, style, properties, action, cell)
+		  ) +			
 			addStyle(mxConstants.STYLE_SPACING, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_VERTICAL_ALIGN, style, properties, action, cell) +			
 			addStyle(mxConstants.STYLE_STROKECOLOR, style, properties, action, cell) +			
@@ -3634,6 +4727,11 @@ LucidImporter = {};
 			}
 		}
 		
+		if (properties.Title_VAlign != null && typeof properties.Title_VAlign === 'string')
+		{
+			return 'verticalAlign=' + properties.Title_VAlign + ';';
+		}
+		
 		return createStyle(mxConstants.STYLE_VERTICAL_ALIGN, properties.TextVAlign, 'middle');
 	}
 	
@@ -3656,6 +4754,16 @@ LucidImporter = {};
 		if (color != null)
 		{
 			return mxConstants.STYLE_FILLCOLOR + '=' + getColor(color) + ';';
+		}
+		
+		return '';
+	}
+	
+	function getLaneColor(color)
+	{
+		if (color != null)
+		{
+			return 'swimlaneFillColor=' + getColor(color) + ';';
 		}
 		
 		return '';
@@ -3696,7 +4804,7 @@ LucidImporter = {};
 
 	function getRounded(properties, action, cell)
 	{
-		if (!cell.edge)
+		if (!cell.edge && !cell.style.includes('rounded'))
 		{
 			//rounding check
 			if (properties.Rounding != null)
@@ -3728,7 +4836,7 @@ LucidImporter = {};
 			
 			// Fixes the case for horizontal swimlanes where we use horizontal=0
 			// and Lucid uses rotation
-			if (deg != 0 && ((action.Class == 'UMLSwimLaneBlockV2') || (action.Class.indexOf('Rotated') >= 0 && (action.Class.indexOf('Pool') >= 0 || action.Class.indexOf('SwimLane') >= 0))))
+			if (deg != 0 && ((action.Class == 'UMLSwimLaneBlockV2') || ((action.Class.indexOf('Rotated') >= 0 || deg == -90 || deg == 270) && (action.Class.indexOf('Pool') >= 0 || action.Class.indexOf('SwimLane') >= 0))))
 			{
 				deg += 90;
 				cell.geometry.rotate90();
@@ -3791,7 +4899,12 @@ LucidImporter = {};
 
 	function getColor(color)
 	{
-		return color.substring(0, 7);
+		return color? color.substring(0, 7) : null;
+	}
+	
+	function getOpacity2(color, style)
+	{
+		return color && color.length > 7? (style + '=' + Math.round(parseInt('0x' + color.substr(7)) / 2.55) + ';') : '';
 	}
 	
 	function getFillColor(properties, action)
@@ -3830,9 +4943,33 @@ LucidImporter = {};
 		{
 			return 'dashed=1;dashPattern=10 5 1 5;';
 		}
+		else if (properties.StrokeStyle == 'dashdotdot')
+		{
+			return 'dashed=1;dashPattern=10 5 1 5 1 5;';
+		}
 		else if (properties.StrokeStyle == 'dotdotdot')
 		{
-			return 'dashed=1;dashPattern=1 1;';
+			return 'dashed=1;dashPattern=1 2;';
+		}
+		else if (properties.StrokeStyle == 'longdash')
+		{
+			return 'dashed=1;dashPattern=16 6;';
+		}
+		else if (properties.StrokeStyle == 'dashlongdash')
+		{
+			return 'dashed=1;dashPattern=10 6 16 6;';
+		}
+		else if (properties.StrokeStyle == 'dashed24')
+		{
+			return 'dashed=1;dashPattern=3 8;';
+		}
+		else if (properties.StrokeStyle == 'dashed32')
+		{
+			return 'dashed=1;dashPattern=6 5;';
+		}
+		else if (properties.StrokeStyle == 'dashed44')
+		{
+			return 'dashed=1;dashPattern=8 8;';
 		}
 		else if (properties.StrokeStyle != null && properties.
 			StrokeStyle.substring(0, 6) == 'dashed')
@@ -3850,15 +4987,27 @@ LucidImporter = {};
 	
 	function getImage(properties, action)
 	{
+		var imgUrl = null;
+		
 		// Converts images
 		if (action.Class == 'ImageSearchBlock2')
 		{
-			return 'image=' + properties.URL + ';';
+			imgUrl = properties.URL;
 		}
 		else if (action.Class == 'UserImage2Block' && properties.ImageFillProps != null &&
 				properties.ImageFillProps.url != null)
 		{
-			return 'image=' + properties.ImageFillProps.url  + ';';
+			imgUrl = properties.ImageFillProps.url;
+		}
+		
+		if (imgUrl != null)
+		{
+			if (LucidImporter.imgSrcMap != null && LucidImporter.imgSrcMap[imgUrl] != null)
+			{
+				imgUrl = LucidImporter.imgSrcMap[imgUrl];
+			}
+			
+			return 'image=' + imgUrl + ';';
 		}
 		
 		return '';
@@ -3992,7 +5141,7 @@ LucidImporter = {};
 			{
 				// Adds label
 				cell.value = (!ignoreLabel) ? convertText(p) : '';
-				cell.style += addAllStyles(cell.style, p, a, cell);
+				cell.style += addAllStyles(cell.style, p, a, cell, isLastLblHTML);
 				
 				if (!cell.style.includes('strokeColor'))
 				{
@@ -4001,10 +5150,19 @@ LucidImporter = {};
 				
 				addCustomData(cell, p, graph);
 				
+				if (p.Title && p.Text)
+				{
+					var geo = cell.geometry;
+					var title = new mxCell(convertText(p.Title), new mxGeometry(0, geo.height,geo.width, 10), 'strokeColor=none;fillColor=none;');
+					title.vertex = true;
+					cell.insert(title);
+					title.style += getLabelStyle(p.Title, isLastLblHTML);
+				}
+				
 				// Edge style
 				if (cell.edge)
 				{
-					if (p.Rounding != null)
+					if (p.Rounding != null && p.Shape != 'diagonal') //No rounding for diagornal edges
 					{
 						cell.style += 'rounded=1;arcSize=' + p.Rounding + ';';
 					}
@@ -4015,7 +5173,7 @@ LucidImporter = {};
 					
 					if (p.Shape != 'diagonal')
 					{
-						if (p.ElbowPoints != null)
+						if (p.ElbowPoints != null && p.ElbowPoints.length > 0)
 						{
 							cell.geometry.points = [];
 							
@@ -4078,35 +5236,41 @@ LucidImporter = {};
 						}
 					}
 
+					var waypoints = p.ElbowControlPoints || p.BezierJoints || p.Joints;
+					
+					if (waypoints != null)
+					{
+						cell.geometry.points = [];
+						
+						for (var i = 0; i < waypoints.length; i++)
+						{
+							var pt = waypoints[i].p ? waypoints[i].p : waypoints[i];
+							
+							cell.geometry.points.push(new mxPoint(
+								Math.round(pt.x * scale + dx),
+								Math.round(pt.y * scale + dy)));
+						}
+					}
+					
 					// Inserts implicit or explicit control points for loops
 					var implicitY = false;
 					
 					if (p.ElbowPoints == null && p.Endpoint1.Block != null &&
 						p.Endpoint1.Block == p.Endpoint2.Block)
 					{
-						if (p.ElbowControlPoints != null)
-						{
-							cell.geometry.points = [];
-							
-							for (var i = 0; i < p.ElbowControlPoints.length; i++)
-							{
-								var pt = p.ElbowControlPoints[i];
-								
-								cell.geometry.points.push(new mxPoint(
-									Math.round(pt.x * scale + dx),
-									Math.round(pt.y * scale + dx)));
-							}
-						}
-						else if (source != null && target != null)
+						if (p.ElbowControlPoints == null && source != null && target != null)
 						{
 							var exit = new mxPoint(Math.round(source.geometry.x + source.geometry.width * p.Endpoint1.LinkX),
 								Math.round(source.geometry.y + source.geometry.height * p.Endpoint1.LinkY));
 							var entry = new mxPoint(Math.round(target.geometry.x + target.geometry.width * p.Endpoint2.LinkX),
 								Math.round(target.geometry.y + target.geometry.height * p.Endpoint2.LinkY));
-							var dx = (exit.x == entry.x) ? 20 : 0;
-							var dy = (exit.y == entry.y) ? 0 : 0;
+							dx = (exit.x == entry.x) ? 20 : 0;
+							dy = (exit.y == entry.y) ? 0 : 0;
 							
-							cell.geometry.points = [new mxPoint(exit.x + dx, exit.y + dy), new mxPoint(entry.x + dx, entry.y + dy)];
+							var p1 = new mxPoint(exit.x + dx, exit.y + dy), p2 = new mxPoint(entry.x + dx, entry.y + dy);
+							p1.generated = true;
+							p2.generated = true;
+							cell.geometry.points = [p1, p2];
 							implicitX = (exit.y == entry.y);
 							implicitY = (exit.x == entry.x);
 						}
@@ -4127,7 +5291,8 @@ LucidImporter = {};
 	
 	function createVertex(obj, graph)
 	{
-		var p = getAction(obj).Properties;
+		var a = getAction(obj);
+		var p = a.Properties;
 		var b = p.BoundingBox;
 
 		if (obj.Class != null && (obj.Class.substring(0, 3) === "AWS" || obj.Class.substring(0, 6) === "Amazon" ) && !obj.Class.includes('AWS19'))
@@ -4140,23 +5305,16 @@ LucidImporter = {};
 	    v.vertex = true;
 	    updateCell(v, obj, graph);
 	    
+	    //Store z-order to use it in groups
+		v.zOrder = p.ZOrder;
+	    
 	    //FillOpacity affects icon also, so create a parent as a background color
 	    if (v != null && v.style.indexOf(';grIcon=') >= 0)
     	{
 	    	var parent = new mxCell('', new mxGeometry(v.geometry.x, v.geometry.y,
 	    			v.geometry.width, v.geometry.height), vertexStyle);
 	    	parent.vertex = true;
-	    	var a = getAction(obj);
-			
-			if (a != null)
-			{
-				var p = (a.Properties != null) ? a.Properties : a;
-
-				if (p != null)
-				{
-					parent.style += addAllStyles(parent.style, p, a, parent);
-				}
-			}
+			parent.style += addAllStyles(parent.style, p, a, parent);
 			
 		    v.geometry.x = 0;
 		    v.geometry.y = 0;
@@ -4164,6 +5322,8 @@ LucidImporter = {};
 		    parent.insert(v);
 		    v = parent;
     	}
+	    
+	    handleTextRotation(v, p);
 	    
 	    return v;
 	};
@@ -4207,7 +5367,7 @@ LucidImporter = {};
 
 			if (ta.Text != null)
 			{
-				e = insertLabel(ta, e, obj);
+				e = insertLabel(ta.Text, e, obj);
 			}
 
 			var ta = (p != null) ? p.TextAreas : obj.TextAreas;
@@ -4256,7 +5416,19 @@ LucidImporter = {};
 				}
 				else if (obj.Value.m[i].n == 'c')
 				{
-					style += 'fontColor=' + obj.Value.m[i].v + ';'
+					var v = obj.Value.m[i].v;
+					
+					if (v != null)
+					{
+						if (v.charAt(0) != '#')
+						{
+							v = '#' + v;
+						}
+
+						v = v.substring(0, 7);
+					}
+					
+					style += 'fontColor=' + v + ';'
 				}
 			}
 		}
@@ -4292,29 +5464,88 @@ LucidImporter = {};
 		}
 	};
 
-	var hideObj = function(key, groups, hidden)
+	function createGroup(obj, lookup, edgesGroups)
 	{
-		if (mxUtils.indexOf(hidden, key) < 0)
+		try
 		{
-			hidden.push(key);
-		}
-
-		if (key in groups)
-		{
-			var obj = groups[key];
-			obj.id = key;
-			
-			if (obj.Members != null)
+			if (obj.Action != null && obj.Action.Properties != null)
 			{
-				for (var key2 in obj.Members)
+				obj = obj.Action.Properties;
+			}
+			
+			var group = new mxCell('', new mxGeometry(), 'group;dropTarget=0;');
+			group.vertex = true;
+			var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+			var members = obj.Members, memberCells = [];
+			
+			for (var key in members)
+			{
+				var v = lookup[key];
+				
+				if (v != null)
 				{
-					hidden = hideObj(key2, groups, hidden);
+					memberCells.push(v);
+				}
+				else
+				{
+					//Edges are not yet created, so, create a map for them
+					edgesGroups[key] = group;
 				}
 			}
-		
+			
+			memberCells.sort(function(a, b)
+			{
+				var ai = a.zOrder;
+				var bi = b.zOrder;
+				
+				return (ai != null && bi != null) ? ai - bi : 0;
+			});
+			
+			for (var i = 0; i < memberCells.length; i++)
+			{
+				var v = memberCells[i];
+				minX = Math.min(minX, v.geometry.x);
+				minY = Math.min(minY, v.geometry.y);
+				maxX = Math.max(maxX, v.geometry.x + v.geometry.width);
+				maxY = Math.max(maxY, v.geometry.y + v.geometry.height);
+				v.parent = group;
+				group.insert(v, i);
+			}
+			
+			group.geometry.x = minX;
+			group.geometry.y = minY;
+			group.geometry.width = maxX - minX;
+			group.geometry.height = maxY - minY;
+			
+			if (group.children != null)
+			{
+				for (var i = 0; i < group.children.length; i++)
+				{
+					var geo = group.children[i].geometry;
+					geo.x -= minX;
+					geo.y -= minY;
+				}
+			}
+			
+			if (obj.IsState)
+			{
+				group.lucidLayerInfo = {
+					name: obj.Name,
+					visible: !obj.Hidden,
+					locked: obj.Restrictions.b && obj.Restrictions.p && obj.Restrictions.c
+				};
+			}
+			else if (obj.Hidden)
+			{
+				group.visible = false;
+			}
+			
+			return group;
 		}
-		
-		return hidden;
+		catch(e)
+		{
+			console.log(e);
+		}
 	};
 	
 	function importLucidPage(graph, g, dx, dy, crop, noSelection)
@@ -4324,34 +5555,9 @@ LucidImporter = {};
 		{
 			var select = [];
 			var lookup = {};
+			var edgesGroups = {};
 			var queue = [];
 
-			//collect IDs that are part of groups and hidden
-			var hidden = [];
-			var i = 0;
-			
-			if (g.Groups != null)
-			{
-				for (var key in g.Groups)
-				{
-					var obj = g.Groups[key];
-					obj.id = key;
-					
-					if (obj.Hidden == true && obj.Members != null)
-					{
-						if (mxUtils.indexOf(hidden, key) < 0)
-						{
-							hidden.push(key);
-						}
-
-						for (var key2 in obj.Members)
-						{
-							hidden = hideObj(key2, g.Groups, hidden);
-						}
-					}
-				}
-			}
-			
 			// Vertices first (populates lookup table for connecting edges)
 			if (g.Blocks != null)
 			{
@@ -4360,25 +5566,22 @@ LucidImporter = {};
 					var obj = g.Blocks[key];
 					obj.id = key;
 					
-					if (mxUtils.indexOf(hidden, key) < 0)
+					var created = false;
+					
+					if (styleMap[obj.Class] != null)
 					{
-						var created = false;
-						
-						if (styleMap[obj.Class] != null)
+						if (styleMap[obj.Class] == 'mxCompositeShape')
 						{
-							if (styleMap[obj.Class] == 'mxCompositeShape')
-							{
-								lookup[obj.id] = addCompositeShape(obj, select, graph);
-								queue.push(obj);
-								created = true;
-							}
-						}
-						
-						if (!created)
-						{
-							lookup[obj.id] = createVertex(obj, graph);
+							lookup[obj.id] = addCompositeShape(obj, select, graph);
 							queue.push(obj);
+							created = true;
 						}
+					}
+					
+					if (!created)
+					{
+						lookup[obj.id] = createVertex(obj, graph);
+						queue.push(obj);
 					}
 				}
 			}
@@ -4396,8 +5599,57 @@ LucidImporter = {};
 					{
 					    lookup[obj.id] = createVertex(obj, graph);
 					}
+					else if (obj.IsGenerator && obj.GeneratorData && obj.GeneratorData.p)
+					{
+						if (obj.GeneratorData.p.ClassName == 'OrgChart2018')
+						{
+							//createOrgChart(obj, graph, lookup, queue);
+						}
+					}
 					
 					queue.push(obj);
+				}
+				
+				//Add groups
+				for (var i = 0; i < g.Objects.length; i++)
+				{
+					var obj = g.Objects[i];
+					
+					if (obj.IsGroup)
+					{
+						var group = createGroup(obj, lookup, edgesGroups);
+						
+						if (group)
+						{
+							lookup[obj.id] = group;
+							queue.push(obj);	
+						}
+					}
+				}
+			}
+			
+			//Create groups
+			if (g.Groups != null)
+			{
+				try
+				{
+					for (var key in g.Groups)
+					{
+						var obj = g.Groups[key];
+						obj.id = key;
+
+						var group = createGroup(obj, lookup, edgesGroups);
+						
+						if (group)
+						{
+							lookup[obj.id] = group;
+							queue.push(obj);	
+						}
+					}
+				}
+				catch(e)
+				{
+					console.log(e);
 				}
 			}
 
@@ -4405,13 +5657,10 @@ LucidImporter = {};
 			{
 				for (var key in g.Lines)
 				{
-					if (mxUtils.indexOf(hidden, key) < 0)
-					{
-						var obj = g.Lines[key];
-						obj.id = key;
-						
-						queue.push(obj);
-					}
+					var obj = g.Lines[key];
+					obj.id = key;
+					
+					queue.push(obj);
 				}
 			}
 			
@@ -4445,7 +5694,36 @@ LucidImporter = {};
 						Math.round(p.Endpoint2.y * scale)), false);
 				}
 				
-				select.push(graph.addCell(e, null, null, src, trg));
+				var group = edgesGroups[obj.id];
+				
+				function fixPoint(p, pgeo)
+				{
+					if (p != null && !p.generated)
+					{
+						p.x -= pgeo.x;
+						p.y -= pgeo.y;
+					}
+				};
+				
+				if (group != null)
+				{
+					//Correct edge geometry
+					var geo = e.geometry, pgeo = group.geometry;
+					fixPoint(geo.sourcePoint, pgeo);
+					fixPoint(geo.targetPoint, pgeo);
+					fixPoint(geo.offset, pgeo);
+                    var points = geo.points;
+                    
+                    if (points != null) 
+                    {
+                        for (var i = 0; i < points.length; i++) 
+                        {
+                        	fixPoint(points[i], pgeo);
+                        }
+                    }
+				}
+				
+				select.push(graph.addCell(e, group, null, src, trg));
 			};
 			
 			// Inserts cells in ZOrder and connects edges via lookup
@@ -4456,7 +5734,29 @@ LucidImporter = {};
 				
 				if (v != null)
 				{
-					select.push(graph.addCell(v));
+					if (v.parent == null)
+					{
+						if (v.lucidLayerInfo)
+						{
+							var layerCell = new mxCell();
+					        graph.addCell(layerCell, graph.model.root);
+					        
+					        layerCell.setVisible(v.lucidLayerInfo.visible);
+
+					        if (v.lucidLayerInfo.locked)
+					        {
+					            layerCell.setStyle("locked=1;");
+					        }
+					        
+					        layerCell.setValue(v.lucidLayerInfo.name);
+					        delete v.lucidLayerInfo;
+					        graph.addCell(v, layerCell);
+						}
+						else
+						{
+							select.push(graph.addCell(v));
+						}
+					}
 				}
 				else if (obj.IsLine && obj.Action != null && obj.Action.Properties != null)
 				{
@@ -4507,8 +5807,9 @@ LucidImporter = {};
         return graph;
 	};
 	
-	LucidImporter.importState = function(state)
+	LucidImporter.importState = function(state, imgSrcMap)
 	{
+		LucidImporter.imgSrcMap = imgSrcMap; //Use LucidImporter object to store the map since it is used deep inside
 		var xml = ['<?xml version=\"1.0\" encoding=\"UTF-8\"?>', '<mxfile>'];
 		
 		// Extracts and sorts all pages
@@ -4568,6 +5869,7 @@ LucidImporter = {};
             	xml.push(' name="' + mxUtils.htmlEntities(pages[i].Properties.Title) + '"');
             }
             
+            xml.push(' id="' + i + '"'); //Add page ids in case it is needed in aspects
 			importLucidPage(graph, pages[i], null, null, null, true);
             var node = codec.encode(graph.getModel());
             graph.getModel().clear();
@@ -4576,6 +5878,7 @@ LucidImporter = {};
 		}
 		
 		xml.push('</mxfile>');
+		LucidImporter.imgSrcMap = null; //Reset the map so it doesn't affect next calls
 		
 		return xml.join('');
 	};
@@ -4622,7 +5925,7 @@ LucidImporter = {};
     	v.vertex = true;
 	    var icon1 = new mxCell(label, new mxGeometry(0, 0.5, 24, 24), 
 	    		'dashed=0;connectable=0;html=1;strokeColor=none;' + mxConstants.STYLE_SHAPE + '=mxgraph.gcp2.' + icon + ';part=1;shadow=0;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=5;'); 
-	    icon1.style += addAllStyles(icon1.style, p, a, icon1);
+	    icon1.style += addAllStyles(icon1.style, p, a, icon1, isLastLblHTML);
 	    
 	    icon1.geometry.relative = true;
 	    icon1.geometry.offset = new mxPoint(5, -12);
@@ -4652,7 +5955,7 @@ LucidImporter = {};
 	    icon1.geometry.relative = true;
 	    icon1.geometry.offset = new mxPoint(- scaleX * w * 0.35, 10 + (1 - scaleY) * w * 0.35);
     	icon1.vertex = true;
-    	icon1.style += addAllStyles(icon1.style, p, a, icon1);
+    	icon1.style += addAllStyles(icon1.style, p, a, icon1, isLastLblHTML);
     	v.insert(icon1);
 	};
 	
@@ -4719,6 +6022,9 @@ LucidImporter = {};
 		v = new mxCell('', new mxGeometry(x, y, w, h), vertexStyle);
 	    v.vertex = true;
 
+	    //Store z-order to use it in groups
+		v.zOrder = p.ZOrder;
+		
 	    var cls = (obj.Class != null) ? obj.Class : (a != null) ? a.Class : null;
 	    
 	    //composite shapes
@@ -4765,7 +6071,7 @@ LucidImporter = {};
 				v.insert(label);
 				
 				label.style += 	
-					addAllStyles(label.style, p, a, label);
+					addAllStyles(label.style, p, a, label, isLastLblHTML);
 				break;
 			case 'BPMNAdvancedPoolBlockRotated' :
 			case 'UMLMultiLanePoolRotatedBlock' :
@@ -4774,86 +6080,207 @@ LucidImporter = {};
 			case 'AdvancedSwimLaneBlockRotated' :
 			case 'AdvancedSwimLaneBlock' :
 			case 'UMLSwimLaneBlockV2':
-			    var rotatedSL = p['Rotation'] != 0;
-			    var isPool = cls.indexOf('Pool') > 0;
-			    var isBPMN = cls.indexOf('BPMN') == 0;
-			    var hasTxt = p["MainText"] != null;
+				//Lucid changed swimlanes format
+				var mainTxtFld = 'MainText', laneFld = null, headerFillFld = 'HeaderFill_', bodyFillFld = 'BodyFill_';
+				var mainTxtHeight = 25, laneTxtHeight = 25;
 				var lanesNum = 0;
 				
 				if (p.Lanes != null)
 				{
 					lanesNum = p.Lanes.length;
 				}
+				else if (p.PrimaryLane != null)
+				{
+					lanesNum = p.PrimaryLane.length;
 
-				v.style = (isPool? 'swimlane;' : 'fillColor=none;strokeColor=none;pointerEvents=0;') + 
+					//In this format, boundingBox is not accurate!
+					w = 0, h = 0;
+					
+					for (var i = 0; i < lanesNum; i++)
+					{
+						w += p.PrimaryLane[i];
+					}
+					
+					for (var i = 0; i < p.SecondaryLane.length; i++)
+					{
+						h += p.SecondaryLane[i];
+					}
+					
+				    function fixTitleHeight(val)
+					{
+						if (!val) 
+						{
+							return 0;
+						}
+						else if (val < 32)
+						{
+							val = 32;
+						}
+						else if (val > 208)
+						{
+							val = 208;
+						}
+
+						return val * scale;
+					};
+
+					mainTxtHeight = fixTitleHeight(p.PrimaryPoolTitleHeight);
+					laneTxtHeight = fixTitleHeight(p.PrimaryLaneTitleHeight);
+					
+					w = w * scale;
+					h = h * scale + mainTxtHeight + laneTxtHeight;
+					v.geometry.width = w;
+					v.geometry.height = h;
+					
+					mainTxtFld = 'poolPrimaryTitleKey';
+					headerFillFld = 'PrimaryLaneHeaderFill_';
+					bodyFillFld = 'CellFill_0,';
+					laneFld = p.PrimaryLaneTextAreaIds;
+					
+					if (laneFld == null)
+					{
+						laneFld = [];
+						
+						for (var i = 0; i < lanesNum; i++)
+						{
+							laneFld.push('Primary_' + i);
+						}
+					}
+				}
+				
+				if (p.IsPrimaryLaneVertical == false)
+				{
+					p['Rotation'] = -1.5707963267948966; //-90
+					var origX = v.geometry.x;
+					var origY = v.geometry.y;
+				}
+				
+			    var rotatedSL = p['Rotation'] != 0; 
+			    var isPool = cls.indexOf('Pool') > 0;
+			    var isBPMN = cls.indexOf('BPMN') == 0;
+			    var hasTxt = p[mainTxtFld] != null;
+				
+				v.style = (isPool? 'swimlane;startSize=' + mainTxtHeight + ';' : 'fillColor=none;strokeColor=none;pointerEvents=0;') + 
 					'html=1;whiteSpace=wrap;container=1;collapsible=0;childLayout=stackLayout;' +
 					'resizeParent=1;dropTarget=0;' + (rotatedSL? 'horizontalStack=0;' : '');
 				v.style += addAllStyles(v.style, p, a, v);
 				
 				if (hasTxt)
 				{
-					v.value = convertText(p["MainText"]);
-					v.style += getFontSize(p["MainText"]) +
-							getFontColor(p["MainText"]) + 
-							getFontStyle(p["MainText"]) +
-							getTextAlignment(p["MainText"], v) + 
-							getTextLeftSpacing(p["MainText"]) +
-							getTextRightSpacing(p["MainText"]) + 
-							getTextTopSpacing(p["MainText"]) +
-							getTextBottomSpacing(p["MainText"]) + 
-							getTextGlobalSpacing(p["MainText"]) +
-							getTextVerticalAlignment(p["MainText"]);
+					v.value = convertText(p[mainTxtFld]);
+					v.style += (isLastLblHTML? 'overflow=width;' : 
+							getFontSize(p[mainTxtFld]) +
+							getFontColor(p[mainTxtFld]) + 
+							getFontStyle(p[mainTxtFld]) +
+							getTextAlignment(p[mainTxtFld], v) + 
+							getTextLeftSpacing(p[mainTxtFld]) +
+							getTextRightSpacing(p[mainTxtFld]) + 
+							getTextTopSpacing(p[mainTxtFld]) +
+							getTextBottomSpacing(p[mainTxtFld]) 
+							) +
+							getTextGlobalSpacing(p[mainTxtFld]) +
+							getTextVerticalAlignment(p[mainTxtFld]);
 				}
 				
 				var totalOffset = 0; //relative
 				var lane = new Array();
 
-				var laneStyle = 'swimlane;html=1;whiteSpace=wrap;container=1;connectable=0;collapsible=0;startSize=25;dropTarget=0;' + 
+				var laneStyle = 'swimlane;html=1;whiteSpace=wrap;container=1;connectable=0;collapsible=0;startSize=' + laneTxtHeight + ';dropTarget=0;rounded=0;' + 
 								(rotatedSL? 'horizontal=0;': '') +
 								(isBPMN? 'swimlaneLine=0;fillColor=none;' : '');
+				p['Rotation'] = 0; //Override rotation such that it doesn't mess with our coordinates
 				
 				for (var j = 0; j < lanesNum; j++)
 				{
-					var currOffset = parseFloat(p.Lanes[j].p);
-					var i = parseInt(p.Lanes[j].tid) || j;
-					
-					lane.push(new mxCell('', new mxGeometry(w * totalOffset, 0,	w * currOffset, h), laneStyle));
+					if (laneFld == null)
+					{
+						var currOffset = parseFloat(p.Lanes[j].p);
+						var i = parseInt(p.Lanes[j].tid) || j;
+						var curLane = 'Lane_' + i;
+					}
+					else
+					{
+						var currOffset = (p.PrimaryLane[j] * scale)/ w;
+						var i = j;
+						var curLane = laneFld[j];
+					}
+
+					var childX = w * totalOffset;
+					var childY = isPool? mainTxtHeight : 0;
+					lane.push(new mxCell('', rotatedSL? new mxGeometry(childY, childX,	h - childY, w * currOffset) :
+						new mxGeometry(childX, childY,	w * currOffset, h - childY), laneStyle));
 					
 					lane[j].vertex = true;
 					v.insert(lane[j]);
-					lane[j].value = convertText(p["Lane_" + i]);
+					lane[j].value = convertText(p[curLane]);
 					lane[j].style +=
-									addAllStyles(lane[j].style, p, a, lane[j]) +
-									getFontSize(p["Lane_" + i]) +
-									getFontColor(p["Lane_" + i]) + 
-									getFontStyle(p["Lane_" + i]) +
-									getTextAlignment(p["Lane_" + i], lane[j]) + 
-									getTextLeftSpacing(p["Lane_" + i]) +
-									getTextRightSpacing(p["Lane_" + i]) + 
-									getTextTopSpacing(p["Lane_" + i]) +
-									getTextBottomSpacing(p["Lane_" + i]) + 
-									getTextGlobalSpacing(p["Lane_" + i]) +
-									getTextVerticalAlignment(p["Lane_" + i]) +
-									getHeaderColor(p["HeaderFill_" + i]);
+									addAllStyles(lane[j].style, p, a, lane[j], isLastLblHTML) +
+									(isLastLblHTML? '' : 
+									getFontSize(p[curLane]) +
+									getFontColor(p[curLane]) + 
+									getFontStyle(p[curLane]) +
+									getTextAlignment(p[curLane], lane[j]) + 
+									getTextLeftSpacing(p[curLane]) +
+									getTextRightSpacing(p[curLane]) + 
+									getTextTopSpacing(p[curLane]) +
+									getTextBottomSpacing(p[curLane]) 
+									) +
+									getTextGlobalSpacing(p[curLane]) +
+									getTextVerticalAlignment(p[curLane]) +
+									getHeaderColor(p[headerFillFld + i]) +
+									getLaneColor(p[bodyFillFld + i]);
 
 					totalOffset += currOffset;
+				}
+				
+				if (origX != null)
+				{
+					v.geometry.x = origX;
+					v.geometry.y = origY;
 				}
 				break;
 			case 'UMLMultidimensionalSwimlane' :
 				var rowsNum = 0;
 				var colsNum = 0;
+				var rowFld = null, colFld = null;
 				
-				if (p.Rows != null && p.Columns)
+				if (p.Rows != null && p.Columns != null)
 				{
 					rowsNum = p.Rows.length;
 					colsNum = p.Columns.length;
+					var colStartSize = p.TitleHeight * scale || 25;
+					var rowStartSize = p.TitleWidth  * scale || 25;
 				}
-
-				v.style = 'group';
-				
-				var colStartSize = p.TitleHeight * scale || 25;
-				var rowStartSize = p.TitleWidth  * scale || 25;
-				
+				else if (p.PrimaryLane != null && p.SecondaryLane != null)
+				{
+					rowsNum = p.SecondaryLane.length;
+					colsNum = p.PrimaryLane.length;
+					var rowStartSize = p.SecondaryLaneTitleHeight  * scale || 25;
+					var colStartSize = p.PrimaryLaneTitleHeight * scale || 25;
+					
+					//In this format, boundingBox is not accurate!
+					w = 0, h = 0;
+					
+					for (var i = 0; i < rowsNum; i++)
+					{
+						h += p.SecondaryLane[i];
+					}
+					
+					for (var i = 0; i < colsNum; i++)
+					{
+						w += p.PrimaryLane[i];
+					}
+					
+					w = w * scale + rowStartSize;
+					h = h * scale + colStartSize;
+					v.geometry.width = w;
+					v.geometry.height = h;
+					
+					rowFld = p.SecondaryLaneTextAreaIds;
+					colFld = p.PrimaryLaneTextAreaIds;
+				}
+					
+				v.style = 'group;';
 				var contStyle = 'fillColor=none;strokeColor=none;html=1;whiteSpace=wrap;container=1;collapsible=0;childLayout=stackLayout;' +
 									'resizeParent=1;dropTarget=0;';
 				var rows = new mxCell('', new mxGeometry(0, colStartSize, w, h - colStartSize), contStyle + 'horizontalStack=0;');
@@ -4869,26 +6296,37 @@ LucidImporter = {};
 				
 				for (var j = 0; j < rowsNum; j++)
 				{
-					var rh = parseInt(p.Rows[j].height) * scale;
-					var i = parseInt(p.Rows[j].id) || j;
+					if (rowFld == null)
+					{
+						var rh = parseInt(p.Rows[j].height) * scale;
+						var i = parseInt(p.Rows[j].id) || j;
+						var curRow = 'Row_' + i;
+					}
+					else
+					{
+						var rh = p.SecondaryLane[j] * scale;
+						var curRow = rowFld[j];
+					}
 					
 					var r = new mxCell('', new mxGeometry(0, y, w, rh), rowStyle);
 					y += rh;
 					r.vertex = true;
 					rows.insert(r);
-					r.value = convertText(p["Row_" + i]);
+					r.value = convertText(p[curRow]);
 					r.style +=
-									addAllStyles(r.style, p, a, r) +
-									getFontSize(p["Row_" + i]) +
-									getFontColor(p["Row_" + i]) + 
-									getFontStyle(p["Row_" + i]) +
-									getTextAlignment(p["Row_" + i], r) + 
-									getTextLeftSpacing(p["Row_" + i]) +
-									getTextRightSpacing(p["Row_" + i]) + 
-									getTextTopSpacing(p["Row_" + i]) +
-									getTextBottomSpacing(p["Row_" + i]) + 
-									getTextGlobalSpacing(p["Row_" + i]) +
-									getTextVerticalAlignment(p["Row_" + i]);
+									addAllStyles(r.style, p, a, r, isLastLblHTML) +
+									(isLastLblHTML? '' : 
+									getFontSize(p[curRow]) +
+									getFontColor(p[curRow]) + 
+									getFontStyle(p[curRow]) +
+									getTextAlignment(p[curRow], r) + 
+									getTextLeftSpacing(p[curRow]) +
+									getTextRightSpacing(p[curRow]) + 
+									getTextTopSpacing(p[curRow]) +
+									getTextBottomSpacing(p[curRow]) 
+									) +
+									getTextGlobalSpacing(p[curRow]) +
+									getTextVerticalAlignment(p[curRow]);
 				}
 				
 				var colStyle = 'swimlane;html=1;whiteSpace=wrap;container=1;connectable=0;collapsible=0;dropTarget=0;startSize=' + colStartSize + ';';
@@ -4896,26 +6334,37 @@ LucidImporter = {};
 				
 				for (var j = 0; j < colsNum; j++)
 				{
-					var cw = parseInt(p.Columns[j].width) * scale;
-					var i = parseInt(p.Columns[j].id) || j;
+					if (colFld == null)
+					{
+						var cw = parseInt(p.Columns[j].width) * scale;
+						var i = parseInt(p.Columns[j].id) || j;
+						var curCol = 'Column_' + i;
+					}
+					else
+					{
+						var cw = p.PrimaryLane[j] * scale;
+						var curCol = colFld[j];
+					}
 					
 					var c = new mxCell('', new mxGeometry(x, 0, cw, h), colStyle);
 					x += cw;
 					c.vertex = true;
 					cols.insert(c);
-					c.value = convertText(p["Column_" + i]);
+					c.value = convertText(p[curCol]);
 					c.style +=
-									addAllStyles(c.style, p, a, c) +
-									getFontSize(p["Column_" + i]) +
-									getFontColor(p["Column_" + i]) + 
-									getFontStyle(p["Column_" + i]) +
-									getTextAlignment(p["Column_" + i], c) + 
-									getTextLeftSpacing(p["Column_" + i]) +
-									getTextRightSpacing(p["Column_" + i]) + 
-									getTextTopSpacing(p["Column_" + i]) +
-									getTextBottomSpacing(p["Column_" + i]) + 
-									getTextGlobalSpacing(p["Column_" + i]) +
-									getTextVerticalAlignment(p["Column_" + i]);
+									addAllStyles(c.style, p, a, c, isLastLblHTML) +
+									(isLastLblHTML? '' : 
+									getFontSize(p[curCol]) +
+									getFontColor(p[curCol]) + 
+									getFontStyle(p[curCol]) +
+									getTextAlignment(p[curCol], c) + 
+									getTextLeftSpacing(p[curCol]) +
+									getTextRightSpacing(p[curCol]) + 
+									getTextTopSpacing(p[curCol]) +
+									getTextBottomSpacing(p[curCol]) 
+									) + 
+									getTextGlobalSpacing(p[curCol]) +
+									getTextVerticalAlignment(p[curCol]);
 				}
 				break;
 			case 'AndroidDevice' :
@@ -5003,13 +6452,13 @@ LucidImporter = {};
 				okButton.vertex = true;
 				v.insert(okButton);
 				dialog.value = convertText(p.DialogTitle);
-				dialog.style += getLabelStyle(p.DialogTitle);
+				dialog.style += getLabelStyle(p.DialogTitle, isLastLblHTML);
 				dialogText.value = convertText(p.DialogText);
-				dialogText.style += getLabelStyle(p.DialogText);
+				dialogText.style += getLabelStyle(p.DialogText, isLastLblHTML);
 				cancelButton.value = convertText(p.Button_0);
-				cancelButton.style += getLabelStyle(p.Button_0);
+				cancelButton.style += getLabelStyle(p.Button_0, isLastLblHTML);
 				okButton.value = convertText(p.Button_1);
-				okButton.style += getLabelStyle(p.Button_1);
+				okButton.style += getLabelStyle(p.Button_1, isLastLblHTML);
 
 				if (p.Scheme == 'Dark')
 				{
@@ -5033,7 +6482,7 @@ LucidImporter = {};
 				dialog.vertex = true;
 				v.insert(dialog);
 				dialog.value = convertText(p.DialogTitle);
-				dialog.style += getLabelStyle(p.DialogTitle);
+				dialog.style += getLabelStyle(p.DialogTitle, isLastLblHTML);
 				var line = new mxCell('', new mxGeometry(0, 25, w, 10), 'shape=line;strokeColor=#33B5E5;');
 				line.vertex = true;
 				v.insert(line);
@@ -5041,12 +6490,12 @@ LucidImporter = {};
 				cancelButton.vertex = true;
 				v.insert(cancelButton);
 				cancelButton.value = convertText(p.Button_0);
-				cancelButton.style += getLabelStyle(p.Button_0);
+				cancelButton.style += getLabelStyle(p.Button_0, isLastLblHTML);
 				var okButton = new mxCell('', new mxGeometry(w * 0.5, h - 25, w * 0.5, 25), 'fillColor=none;');
 				okButton.vertex = true;
 				v.insert(okButton);
 				okButton.value = convertText(p.Button_1);
-				okButton.style += getLabelStyle(p.Button_1);
+				okButton.style += getLabelStyle(p.Button_1, isLastLblHTML);
 
 				var triangle1 = new mxCell('', new mxGeometry(w * 0.5 - 4, 41, 8, 4), 'shape=triangle;direction=north;');
 				triangle1.vertex = true;
@@ -5062,12 +6511,12 @@ LucidImporter = {};
 				prevDate1.vertex = true;
 				v.insert(prevDate1);
 				prevDate1.value = convertText(p.Label_1);
-				prevDate1.style += getLabelStyle(p.Label_1);
+				prevDate1.style += getLabelStyle(p.Label_1, isLastLblHTML);
 				var prevDate2 = new mxCell('', new mxGeometry(w * 0.125, 50, w * 0.2, 15), 'strokeColor=none;fillColor=none;');
 				prevDate2.vertex = true;
 				v.insert(prevDate2);
 				prevDate2.value = convertText(p.Label_0);
-				prevDate2.style += getLabelStyle(p.Label_0);
+				prevDate2.style += getLabelStyle(p.Label_0, isLastLblHTML);
 
 				var prevDate3 = null;
 				
@@ -5077,7 +6526,7 @@ LucidImporter = {};
 					prevDate3.vertex = true;
 					v.insert(prevDate3);
 					prevDate3.value = convertText(p.Label_2);
-					prevDate3.style += getLabelStyle(p.Label_2);
+					prevDate3.style += getLabelStyle(p.Label_2, isLastLblHTML);
 				}
 
 				var line1 = new mxCell('', new mxGeometry(w * 0.43, 60, w * 0.14, 10), 'shape=line;strokeColor=#33B5E5;');
@@ -5094,7 +6543,7 @@ LucidImporter = {};
 				date1.vertex = true;
 				v.insert(date1);
 				date1.value = convertText(p.Label_4);
-				date1.style += getLabelStyle(p.Label_4);
+				date1.style += getLabelStyle(p.Label_4, isLastLblHTML);
 				
 				var sep = null;
 				
@@ -5104,19 +6553,19 @@ LucidImporter = {};
 					sep.vertex = true;
 					v.insert(sep);
 					sep.value = convertText(p.Label_Colon);
-					sep.style += getLabelStyle(p.Label_Colon);
+					sep.style += getLabelStyle(p.Label_Colon, isLastLblHTML);
 				}
 				
 				var date2 = new mxCell('', new mxGeometry(w * 0.125, 65, w * 0.2, 15), 'strokeColor=none;fillColor=none;');
 				date2.vertex = true;
 				v.insert(date2);
 				date2.value = convertText(p.Label_3);
-				date2.style += getLabelStyle(p.Label_3);
+				date2.style += getLabelStyle(p.Label_3, isLastLblHTML);
 				var date3 = new mxCell('', new mxGeometry(w * 0.625, 65, w * 0.2, 15), 'strokeColor=none;fillColor=none;');
 				date3.vertex = true;
 				v.insert(date3);
 				date3.value = convertText(p.Label_5);
-				date3.style += getLabelStyle(p.Label_5);
+				date3.style += getLabelStyle(p.Label_5, isLastLblHTML);
 
 				var line4 = new mxCell('', new mxGeometry(w * 0.43, 75, w * 0.14, 10), 'shape=line;strokeColor=#33B5E5;');
 				line4.vertex = true;
@@ -5132,17 +6581,17 @@ LucidImporter = {};
 				nextDate1.vertex = true;
 				v.insert(nextDate1);
 				nextDate1.value = convertText(p.Label_7);
-				nextDate1.style += getLabelStyle(p.Label_7);
+				nextDate1.style += getLabelStyle(p.Label_7, isLastLblHTML);
 				var nextDate2 = new mxCell('', new mxGeometry(w * 0.125, 80, w * 0.2, 15), 'strokeColor=none;fillColor=none;');
 				nextDate2.vertex = true;
 				v.insert(nextDate2);
 				nextDate2.value = convertText(p.Label_6);
-				nextDate2.style += getLabelStyle(p.Label_6);
+				nextDate2.style += getLabelStyle(p.Label_6, isLastLblHTML);
 				var nextDate3 = new mxCell('', new mxGeometry(w * 0.625, 80, w * 0.2, 15), 'strokeColor=none;fillColor=none;');
 				nextDate3.vertex = true;
 				v.insert(nextDate3);
 				nextDate3.value = convertText(p.Label_8);
-				nextDate3.style += getLabelStyle(p.Label_8);
+				nextDate3.style += getLabelStyle(p.Label_8, isLastLblHTML);
 				
 				var triangle4 = new mxCell('', new mxGeometry(w * 0.5 - 4, 99, 8, 4), 'shape=triangle;direction=south;');
 				triangle4.vertex = true;
@@ -5194,7 +6643,7 @@ LucidImporter = {};
 					header.vertex = true;
 					v.insert(header);
 					header.value = convertText(p.Header);
-					header.style += getLabelStyle(p.Header);
+					header.style += getLabelStyle(p.Header, isLastLblHTML);
 					
 					itemFullH -= startH;
 					
@@ -5219,7 +6668,7 @@ LucidImporter = {};
 					item[i].vertex = true;
 					v.insert(item[i]);
 					item[i].value = convertText(p["Item_" + i]);
-					item[i].style += getLabelStyle(p["Item_" + i]);
+					item[i].style += getLabelStyle(p["Item_" + i], isLastLblHTML);
 					
 					if (i > 0)
 					{
@@ -5268,7 +6717,7 @@ LucidImporter = {};
 					tab[i].vertex = true;
 					v.insert(tab[i]);
 					tab[i].value = convertText(p["Tab_" + i]);
-					tab[i].style += getLabelStyle(p["Tab_" + i]);
+					tab[i].style += getLabelStyle(p["Tab_" + i], isLastLblHTML);
 					
 					if (i > 0)
 					{
@@ -5361,8 +6810,8 @@ LucidImporter = {};
 				}
 				
 				v.value = convertText(p.Label);
-				v.style += getLabelStyle(p.Label);
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += getLabelStyle(p.Label, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 
@@ -5437,7 +6886,7 @@ LucidImporter = {};
 				
 			case 'AndroidButton' :
 				v.value = convertText(p.Label);
-				v.style += getLabelStyle(p.Label) + 'shape=partialRectangle;left=0;right=0;';
+				v.style += getLabelStyle(p.Label, isLastLblHTML) + 'shape=partialRectangle;left=0;right=0;';
 
 				if (p.Scheme == 'Dark')
 				{
@@ -5453,7 +6902,7 @@ LucidImporter = {};
 				
 			case 'AndroidTextBox' :
 				v.value = convertText(p.Label);
-				v.style += getLabelStyle(p.Label);
+				v.style += getLabelStyle(p.Label, isLastLblHTML);
 
 				var underline = new mxCell('', new mxGeometry(2, h - 6, w - 4, 4), 'shape=partialRectangle;top=0;fillColor=none;');
 				underline.vertex = true;
@@ -5485,14 +6934,14 @@ LucidImporter = {};
 				
 				if (p.Checked)
 				{
-					dot = new mxCell('', new mxGeometry(w * 0.15, h * 0.15, w * 0.7, h * 0.7), 'shape=ellipse;fillColor=#33B5E5;strokeWidth=1;');
+					dot = new mxCell('', new mxGeometry(w * 0.15, h * 0.15, w * 0.7, h * 0.7), 'ellipse;fillColor=#33B5E5;strokeWidth=1;');
 					dot.vertex = true;
 					v.insert(dot);
 				}
 
 				if (p.Scheme == 'Dark')
 				{
-					v.style += 'shape=ellipse;strokeWidth=1;strokeColor=#272727;';
+					v.style += 'shape=ellipse;perimeter=ellipsePerimeter;strokeWidth=1;strokeColor=#272727;';
 					
 					if (p.Checked)
 					{
@@ -5506,7 +6955,7 @@ LucidImporter = {};
 				}
 				else
 				{
-					v.style += 'shape=ellipse;strokeWidth=1;fillColor=#ffffff;strokeColor=#5C5C5C;';
+					v.style += 'shape=ellipse;perimeter=ellipsePerimeter;strokeWidth=1;fillColor=#ffffff;strokeColor=#5C5C5C;';
 					
 					if (p.Checked)
 					{
@@ -5590,7 +7039,7 @@ LucidImporter = {};
 					tab[i].vertex = true;
 					v.insert(tab[i]);
 					tab[i].value = convertText(p["Tab_" + i]);
-					tab[i].style += getLabelStyle(p["Tab_" + i]);
+					tab[i].style += getLabelStyle(p["Tab_" + i], isLastLblHTML);
 					
 					if (p.Selected == i)
 					{
@@ -5634,22 +7083,22 @@ LucidImporter = {};
 				var text1 = new mxCell(convertText(p.Text), new mxGeometry(w * 0.35, 0, w * 0.3, h), 'strokeColor=none;fillColor=none;');
 				text1.vertex = true;
 				v.insert(text1);
-				text1.style += getLabelStyle(p.Text);
+				text1.style += getLabelStyle(p.Text, isLastLblHTML);
 				
 				var text2 = new mxCell(convertText(p.Carrier), new mxGeometry(w * 0.09, 0, w * 0.2, h), 'strokeColor=none;fillColor=none;');
 				text2.vertex = true;
 				v.insert(text2);
-				text2.style += getLabelStyle(p.Carrier);
+				text2.style += getLabelStyle(p.Carrier, isLastLblHTML);
 				
 				v.style += addAllStyles(v.style, p, a, v);
 				break;
 				
 			case 'iOSSearchBar' :
-				v.style += 'strokeColor=none;';
-				v.style += addAllStyles(v.style, p, a, v) +
-					getLabelStyle(p.Search);
-				
 				v.value = convertText(p.Search);
+
+				v.style += 'strokeColor=none;';
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML) +
+					getLabelStyle(p.Search, isLastLblHTML);
 				
 				var icon1 = new mxCell('', new mxGeometry(w * 0.3, h * 0.3, h * 0.4, h * 0.4), 'shape=mxgraph.ios7.icons.looking_glass;strokeColor=#000000;fillColor=none;');
 				icon1.vertex = true;
@@ -5658,20 +7107,20 @@ LucidImporter = {};
 				break;
 				
 			case 'iOSNavBar' :
-				v.style += 'shape=partialRectangle;top=0;right=0;left=0;strokeColor=#979797;';
-					+ getLabelStyle(p.Title);
-				v.style += addAllStyles(v.style, p, a, v);
 				v.value = convertText(p.Title);
+				v.style += 'shape=partialRectangle;top=0;right=0;left=0;strokeColor=#979797;';
+					+ getLabelStyle(p.Title, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				var text1 = new mxCell(convertText(p.LeftText), new mxGeometry(w * 0.03, 0, w * 0.3, h), 'strokeColor=none;fillColor=none;');
 				text1.vertex = true;
 				v.insert(text1);
-				text1.style += getLabelStyle(p.LeftText);
+				text1.style += getLabelStyle(p.LeftText, isLastLblHTML);
 				
 				var text2 = new mxCell(convertText(p.RightText), new mxGeometry(w * 0.65, 0, w * 0.3, h), 'strokeColor=none;fillColor=none;');
 				text2.vertex = true;
 				v.insert(text2);
-				text2.style += getLabelStyle(p.RightText);
+				text2.style += getLabelStyle(p.RightText, isLastLblHTML);
 				
 				var icon1 = new mxCell('', new mxGeometry(w * 0.02, h * 0.2, h * 0.3, h * 0.5), 'shape=mxgraph.ios7.misc.left;strokeColor=#007AFF;strokeWidth=2;');
 				icon1.vertex = true;
@@ -5700,9 +7149,8 @@ LucidImporter = {};
 					v.insert(tab[i]);
 					tab[i].value = convertText(p["Tab_" + i]);
 					
-					tab[i].style += getFontSize(p["Tab_" + i]);
-
-					tab[i].style += 
+					tab[i].style += (isLastLblHTML? 'overflow=width;html=1;' :
+									getFontSize(p["Tab_" + i]) +
 									getFontColor(p["Tab_" + i]) + 
 									getFontStyle(p["Tab_" + i]) +
 									getTextAlignment(p["Tab_" + i]) + 
@@ -5710,7 +7158,7 @@ LucidImporter = {};
 									getTextRightSpacing(p["Tab_" + i]) + 
 									getTextTopSpacing(p["Tab_" + i]) +
 									getTextBottomSpacing(p["Tab_" + i]) + 
-									getTextGlobalSpacing(p["Tab_" + i]);
+									getTextGlobalSpacing(p["Tab_" + i]));
 					
 					tab[i].style += 'verticalAlign=bottom;';
 					
@@ -5731,91 +7179,91 @@ LucidImporter = {};
 				firstDate1.vertex = true;
 				v.insert(firstDate1);
 				firstDate1.value = convertText(p.Option11);
-				firstDate1.style += getLabelStyle(p.Option11);
+				firstDate1.style += getLabelStyle(p.Option11, isLastLblHTML);
 				var firstDate2 = new mxCell('', new mxGeometry(w * 0.5, 0, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				firstDate2.vertex = true;
 				v.insert(firstDate2);
 				firstDate2.value = convertText(p.Option21);
-				firstDate2.style += getLabelStyle(p.Option21);
+				firstDate2.style += getLabelStyle(p.Option21, isLastLblHTML);
 				var firstDate3 = new mxCell('', new mxGeometry(w * 0.65, 0, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				firstDate3.vertex = true;
 				v.insert(firstDate3);
 				firstDate3.value = convertText(p.Option31);
-				firstDate3.style += getLabelStyle(p.Option31);
+				firstDate3.style += getLabelStyle(p.Option31, isLastLblHTML);
 
 				var secondDate1 = new mxCell('', new mxGeometry(0, h * 0.2, w * 0.5, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate1.vertex = true;
 				v.insert(secondDate1);
 				secondDate1.value = convertText(p.Option12);
-				secondDate1.style += getLabelStyle(p.Option12);
+				secondDate1.style += getLabelStyle(p.Option12, isLastLblHTML);
 				var secondDate2 = new mxCell('', new mxGeometry(w * 0.5, h * 0.2, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate2.vertex = true;
 				v.insert(secondDate2);
 				secondDate2.value = convertText(p.Option22);
-				secondDate2.style += getLabelStyle(p.Option22);
+				secondDate2.style += getLabelStyle(p.Option22, isLastLblHTML);
 				var secondDate3 = new mxCell('', new mxGeometry(w * 0.65, h * 0.2, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate3.vertex = true;
 				v.insert(secondDate3);
 				secondDate3.value = convertText(p.Option32);
-				secondDate3.style += getLabelStyle(p.Option32);
+				secondDate3.style += getLabelStyle(p.Option32, isLastLblHTML);
 
 				var currDate1 = new mxCell('', new mxGeometry(0, h * 0.4, w * 0.5, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate1.vertex = true;
 				v.insert(currDate1);
 				currDate1.value = convertText(p.Option13);
-				currDate1.style += getLabelStyle(p.Option13);
+				currDate1.style += getLabelStyle(p.Option13, isLastLblHTML);
 				var currDate2 = new mxCell('', new mxGeometry(w * 0.5, h * 0.4, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate2.vertex = true;
 				v.insert(currDate2);
 				currDate2.value = convertText(p.Option23);
-				currDate2.style += getLabelStyle(p.Option23);
+				currDate2.style += getLabelStyle(p.Option23, isLastLblHTML);
 				var currDate3 = new mxCell('', new mxGeometry(w * 0.65, h * 0.4, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate3.vertex = true;
 				v.insert(currDate3);
 				currDate3.value = convertText(p.Option33);
-				currDate3.style += getLabelStyle(p.Option33);
+				currDate3.style += getLabelStyle(p.Option33, isLastLblHTML);
 				var currDate4 = new mxCell('', new mxGeometry(w * 0.80, h * 0.4, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate4.vertex = true;
 				v.insert(currDate4);
 				currDate4.value = convertText(p.Option43);
-				currDate4.style += getLabelStyle(p.Option43);
+				currDate4.style += getLabelStyle(p.Option43, isLastLblHTML);
 
 				var fourthDate1 = new mxCell('', new mxGeometry(0, h * 0.6, w * 0.5, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate1.vertex = true;
 				v.insert(fourthDate1);
 				fourthDate1.value = convertText(p.Option14);
-				fourthDate1.style += getLabelStyle(p.Option14);
+				fourthDate1.style += getLabelStyle(p.Option14, isLastLblHTML);
 				var fourthDate2 = new mxCell('', new mxGeometry(w * 0.5, h * 0.6, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate2.vertex = true;
 				v.insert(fourthDate2);
 				fourthDate2.value = convertText(p.Option24);
-				fourthDate2.style += getLabelStyle(p.Option24);
+				fourthDate2.style += getLabelStyle(p.Option24, isLastLblHTML);
 				var fourthDate3 = new mxCell('', new mxGeometry(w * 0.65, h * 0.6, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate3.vertex = true;
 				v.insert(fourthDate3);
 				fourthDate3.value = convertText(p.Option34);
-				fourthDate3.style += getLabelStyle(p.Option34);
+				fourthDate3.style += getLabelStyle(p.Option34, isLastLblHTML);
 				var fourthDate4 = new mxCell('', new mxGeometry(w * 0.8, h * 0.6, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate4.vertex = true;
 				v.insert(fourthDate4);
 				fourthDate4.value = convertText(p.Option44);
-				fourthDate4.style += getLabelStyle(p.Option44);
+				fourthDate4.style += getLabelStyle(p.Option44, isLastLblHTML);
 
 				var fifthDate1 = new mxCell('', new mxGeometry(0, h * 0.8, w * 0.5, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate1.vertex = true;
 				v.insert(fifthDate1);
 				fifthDate1.value = convertText(p.Option15);
-				fifthDate1.style += getLabelStyle(p.Option15);
+				fifthDate1.style += getLabelStyle(p.Option15, isLastLblHTML);
 				var fifthDate2 = new mxCell('', new mxGeometry(w * 0.5, h * 0.8, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate2.vertex = true;
 				v.insert(fifthDate2);
 				fifthDate2.value = convertText(p.Option25);
-				fifthDate2.style += getLabelStyle(p.Option25);
+				fifthDate2.style += getLabelStyle(p.Option25, isLastLblHTML);
 				var fifthDate3 = new mxCell('', new mxGeometry(w * 0.65, h * 0.8, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate3.vertex = true;
 				v.insert(fifthDate3);
 				fifthDate3.value = convertText(p.Option35);
-				fifthDate3.style += getLabelStyle(p.Option35);
+				fifthDate3.style += getLabelStyle(p.Option35, isLastLblHTML);
 
 				var line1 = new mxCell('', new mxGeometry(0, h * 0.4 - 2, w, 4), 'shape=line;strokeColor=#888888;');
 				line1.vertex = true;
@@ -5834,66 +7282,66 @@ LucidImporter = {};
 				firstDate1.vertex = true;
 				v.insert(firstDate1);
 				firstDate1.value = convertText(p.Option11);
-				firstDate1.style += getLabelStyle(p.Option11);
+				firstDate1.style += getLabelStyle(p.Option11, isLastLblHTML);
 				var firstDate2 = new mxCell('', new mxGeometry(w * 0.25, 0, w * 0.3, h * 0.2), 'strokeColor=none;fillColor=none;');
 				firstDate2.vertex = true;
 				v.insert(firstDate2);
 				firstDate2.value = convertText(p.Option21);
-				firstDate2.style += getLabelStyle(p.Option21);
+				firstDate2.style += getLabelStyle(p.Option21, isLastLblHTML);
 
 				var secondDate1 = new mxCell('', new mxGeometry(0, h * 0.2, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate1.vertex = true;
 				v.insert(secondDate1);
 				secondDate1.value = convertText(p.Option12);
-				secondDate1.style += getLabelStyle(p.Option12);
+				secondDate1.style += getLabelStyle(p.Option12, isLastLblHTML);
 				var secondDate2 = new mxCell('', new mxGeometry(w * 0.25, h * 0.2, w * 0.3, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate2.vertex = true;
 				v.insert(secondDate2);
 				secondDate2.value = convertText(p.Option22);
-				secondDate2.style += getLabelStyle(p.Option22);
+				secondDate2.style += getLabelStyle(p.Option22, isLastLblHTML);
 
 				var currDate1 = new mxCell('', new mxGeometry(0, h * 0.4, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate1.vertex = true;
 				v.insert(currDate1);
 				currDate1.value = convertText(p.Option13);
-				currDate1.style += getLabelStyle(p.Option13);
+				currDate1.style += getLabelStyle(p.Option13, isLastLblHTML);
 				var currDate2 = new mxCell('', new mxGeometry(w * 0.25, h * 0.4, w * 0.3, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate2.vertex = true;
 				v.insert(currDate2);
 				currDate2.value = convertText(p.Option23);
-				currDate2.style += getLabelStyle(p.Option23);
+				currDate2.style += getLabelStyle(p.Option23, isLastLblHTML);
 				var currDate4 = new mxCell('', new mxGeometry(w * 0.7, h * 0.4, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate4.vertex = true;
 				v.insert(currDate4);
 				currDate4.value = convertText(p.Option33);
-				currDate4.style += getLabelStyle(p.Option33);
+				currDate4.style += getLabelStyle(p.Option33, isLastLblHTML);
 
 				var fourthDate1 = new mxCell('', new mxGeometry(0, h * 0.6, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate1.vertex = true;
 				v.insert(fourthDate1);
 				fourthDate1.value = convertText(p.Option14);
-				fourthDate1.style += getLabelStyle(p.Option14);
+				fourthDate1.style += getLabelStyle(p.Option14, isLastLblHTML);
 				var fourthDate2 = new mxCell('', new mxGeometry(w * 0.25, h * 0.6, w * 0.3, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate2.vertex = true;
 				v.insert(fourthDate2);
 				fourthDate2.value = convertText(p.Option24);
-				fourthDate2.style += getLabelStyle(p.Option24);
+				fourthDate2.style += getLabelStyle(p.Option24, isLastLblHTML);
 				var fourthDate4 = new mxCell('', new mxGeometry(w * 0.7, h * 0.6, w * 0.15, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate4.vertex = true;
 				v.insert(fourthDate4);
 				fourthDate4.value = convertText(p.Option34);
-				fourthDate4.style += getLabelStyle(p.Option34);
+				fourthDate4.style += getLabelStyle(p.Option34, isLastLblHTML);
 
 				var fifthDate1 = new mxCell('', new mxGeometry(0, h * 0.8, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate1.vertex = true;
 				v.insert(fifthDate1);
 				fifthDate1.value = convertText(p.Option15);
-				fifthDate1.style += getLabelStyle(p.Option15);
+				fifthDate1.style += getLabelStyle(p.Option15, isLastLblHTML);
 				var fifthDate2 = new mxCell('', new mxGeometry(w * 0.25, h * 0.8, w * 0.3, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate2.vertex = true;
 				v.insert(fifthDate2);
 				fifthDate2.value = convertText(p.Option25);
-				fifthDate2.style += getLabelStyle(p.Option25);
+				fifthDate2.style += getLabelStyle(p.Option25, isLastLblHTML);
 
 				var line1 = new mxCell('', new mxGeometry(0, h * 0.4 - 2, w, 4), 'shape=line;strokeColor=#888888;');
 				line1.vertex = true;
@@ -5912,56 +7360,56 @@ LucidImporter = {};
 				firstDate3.vertex = true;
 				v.insert(firstDate3);
 				firstDate3.value = convertText(p.Option31);
-				firstDate3.style += getLabelStyle(p.Option31);
+				firstDate3.style += getLabelStyle(p.Option31, isLastLblHTML);
 
 				var secondDate3 = new mxCell('', new mxGeometry(w * 0.45, h * 0.2, w * 0.2, h * 0.2), 'strokeColor=none;fillColor=none;');
 				secondDate3.vertex = true;
 				v.insert(secondDate3);
 				secondDate3.value = convertText(p.Option32);
-				secondDate3.style += getLabelStyle(p.Option32);
+				secondDate3.style += getLabelStyle(p.Option32, isLastLblHTML);
 
 				var currDate1 = new mxCell('', new mxGeometry(0, h * 0.4, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate1.vertex = true;
 				v.insert(currDate1);
 				currDate1.value = convertText(p.Option13);
-				currDate1.style += getLabelStyle(p.Option13);
+				currDate1.style += getLabelStyle(p.Option13, isLastLblHTML);
 				var currDate2 = new mxCell('', new mxGeometry(w * 0.2, h * 0.4, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate2.vertex = true;
 				v.insert(currDate2);
 				currDate2.value = convertText(p.Option23);
-				currDate2.style += getLabelStyle(p.Option23);
+				currDate2.style += getLabelStyle(p.Option23, isLastLblHTML);
 				var currDate3 = new mxCell('', new mxGeometry(w * 0.45, h * 0.4, w * 0.2, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate3.vertex = true;
 				v.insert(currDate3);
 				currDate3.value = convertText(p.Option33);
-				currDate3.style += getLabelStyle(p.Option33);
+				currDate3.style += getLabelStyle(p.Option33, isLastLblHTML);
 				var currDate4 = new mxCell('', new mxGeometry(w * 0.6, h * 0.4, w * 0.2, h * 0.2), 'strokeColor=none;fillColor=none;');
 				currDate4.vertex = true;
 				v.insert(currDate4);
 				currDate4.value = convertText(p.Option43);
-				currDate4.style += getLabelStyle(p.Option43);
+				currDate4.style += getLabelStyle(p.Option43, isLastLblHTML);
 
 				var fourthDate1 = new mxCell('', new mxGeometry(0, h * 0.6, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate1.vertex = true;
 				v.insert(fourthDate1);
 				fourthDate1.value = convertText(p.Option14);
-				fourthDate1.style += getLabelStyle(p.Option14);
+				fourthDate1.style += getLabelStyle(p.Option14, isLastLblHTML);
 				var fourthDate3 = new mxCell('', new mxGeometry(w * 0.45, h * 0.6, w * 0.2, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fourthDate3.vertex = true;
 				v.insert(fourthDate3);
 				fourthDate3.value = convertText(p.Option34);
-				fourthDate3.style += getLabelStyle(p.Option34);
+				fourthDate3.style += getLabelStyle(p.Option34, isLastLblHTML);
 
 				var fifthDate1 = new mxCell('', new mxGeometry(0, h * 0.8, w * 0.25, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate1.vertex = true;
 				v.insert(fifthDate1);
 				fifthDate1.value = convertText(p.Option15);
-				fifthDate1.style += getLabelStyle(p.Option15);
+				fifthDate1.style += getLabelStyle(p.Option15, isLastLblHTML);
 				var fifthDate3 = new mxCell('', new mxGeometry(w * 0.45, h * 0.8, w * 0.2, h * 0.2), 'strokeColor=none;fillColor=none;');
 				fifthDate3.vertex = true;
 				v.insert(fifthDate3);
 				fifthDate3.value = convertText(p.Option35);
-				fifthDate3.style += getLabelStyle(p.Option35);
+				fifthDate3.style += getLabelStyle(p.Option35, isLastLblHTML);
 
 				var line1 = new mxCell('', new mxGeometry(0, h * 0.4 - 2, w, 4), 'shape=line;strokeColor=#888888;');
 				line1.vertex = true;
@@ -5976,15 +7424,15 @@ LucidImporter = {};
 				break;
 				
 			case 'iOSBasicCell' :
-				v.style += 'shape=partialRectangle;left=0;top=0;right=0;fillColor=#ffffff;strokeColor=#C8C7CC;spacing=0;align=left;spacingLeft=' + (p.SeparatorInset * scale) + ';';
-				v.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text) +
-					getTextVerticalAlignment(p.text);
-				v.style += addAllStyles(v.style, p, a, v);
-
 				v.value = convertText(p.text);
-				
+				v.style += 'shape=partialRectangle;left=0;top=0;right=0;fillColor=#ffffff;strokeColor=#C8C7CC;spacing=0;align=left;spacingLeft=' + (p.SeparatorInset * scale) + ';';
+				v.style += (isLastLblHTML? '' : 
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text)) +
+					getTextVerticalAlignment(p.text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
+
 				switch (p.AccessoryIndicatorType) 
 				{
 					case 'Disclosure' :
@@ -6024,20 +7472,21 @@ LucidImporter = {};
 				
 			case 'iOSSubtitleCell' :
 				v.style += 'shape=partialRectangle;left=0;top=0;right=0;fillColor=#ffffff;strokeColor=#C8C7CC;align=left;spacing=0;verticalAlign=top;spacingLeft=' + (p.SeparatorInset * scale) + ';';
-				v.style += getFontSize(p.subtext) +
-					getFontColor(p.subtext) + 
-					getFontStyle(p.subtext);
-				v.style += addAllStyles(v.style, p, a, v);
-
 				v.value = convertText(p.subtext);
+				v.style += (isLastLblHTML? '' : 
+					getFontSize(p.subtext) +
+					getFontColor(p.subtext) + 
+					getFontStyle(p.subtext));
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var subtext = new mxCell('', new mxGeometry(0, h * 0.4, w, h * 0.6), 'fillColor=none;strokeColor=none;spacing=0;align=left;verticalAlign=bottom;spacingLeft=' + (p.SeparatorInset * scale) + ';');
 				subtext.vertex = true;
 				v.insert(subtext);
-				subtext.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text);
 				subtext.value = convertText(p.text);
+				subtext.style += (isLastLblHTML? 'html=1;' : 
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text));
 
 				switch (p.AccessoryIndicatorType) 
 				{
@@ -6078,13 +7527,13 @@ LucidImporter = {};
 				
 			case 'iOSRightDetailCell' :
 				v.style += 'shape=partialRectangle;left=0;top=0;right=0;fillColor=#ffffff;strokeColor=#C8C7CC;align=left;spacing=0;verticalAlign=middle;spacingLeft=' + (p.SeparatorInset * scale) + ';';
-				v.style += getFontSize(p.subtext) +
-					getFontColor(p.subtext) + 
-					getFontStyle(p.subtext);
-				v.style += addAllStyles(v.style, p, a, v);
-
 				v.value = convertText(p.subtext);
-				
+				v.style += (isLastLblHTML? '' :
+					getFontSize(p.subtext) +
+					getFontColor(p.subtext) + 
+					getFontStyle(p.subtext));
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
+					
 				var subtext = null;
 				
 				switch (p.AccessoryIndicatorType) 
@@ -6135,10 +7584,11 @@ LucidImporter = {};
 
 				subtext.vertex = true;
 				v.insert(subtext);
-				subtext.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text);
 				subtext.value = convertText(p.text);
+				subtext.style += (isLastLblHTML? 'html=1;' :
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text));
 
 				break;
 				
@@ -6149,18 +7599,20 @@ LucidImporter = {};
 				var text = new mxCell('', new mxGeometry(0, 0, w * 0.25, h), 'fillColor=none;strokeColor=none;spacing=0;align=right;verticalAlign=middle;spacingRight=3;');
 				text.vertex = true;
 				v.insert(text);
-				text.style += getFontSize(p.subtext) +
-					getFontColor(p.subtext) + 
-					getFontStyle(p.subtext);
 				text.value = convertText(p.subtext);
+				text.style += (isLastLblHTML? 'html=1;' :
+					getFontSize(p.subtext) +
+					getFontColor(p.subtext) + 
+					getFontStyle(p.subtext));
 
 				var subtext = new mxCell('', new mxGeometry(w * 0.25, 0, w * 0.5, h), 'fillColor=none;strokeColor=none;spacing=0;align=left;verticalAlign=middle;spacingLeft=3;');
 				subtext.vertex = true;
 				v.insert(subtext);
-				subtext.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text);
 				subtext.value = convertText(p.text);
+				subtext.style += (isLastLblHTML? 'html=1;' :
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text));
 
 				switch (p.AccessoryIndicatorType) 
 				{
@@ -6205,28 +7657,31 @@ LucidImporter = {};
 				var text1 = new mxCell('', new mxGeometry(0, 0, w, h * 0.4), 'fillColor=none;strokeColor=none;spacing=10;align=left;');
 				text1.vertex = true;
 				v.insert(text1);
-				text1.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text);
 				text1.value = convertText(p.text);
+				text1.style += (isLastLblHTML? 'html=1;' :
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text));
 
 				var text2 = new mxCell('', new mxGeometry(0, h * 0.6, w, h * 0.4), 'fillColor=none;strokeColor=none;spacing=10;align=left;');
 				text2.vertex = true;
 				v.insert(text2);
-				text2.style += getFontSize(p["bottom-text"]) +
-					getFontColor(p["bottom-text"]) + 
-					getFontStyle(p["bottom-text"]);
 				text2.value = convertText(p["bottom-text"]);
+				text2.style += (isLastLblHTML? 'html=1;' :
+					getFontSize(p["bottom-text"]) +
+					getFontColor(p["bottom-text"]) + 
+					getFontStyle(p["bottom-text"]));
 
 				break;
 				
 			case 'iOSTablePlainHeaderFooter' :
 				v.style += 'fillColor=#F7F7F7;strokeColor=none;align=left;spacingLeft=5;spacing=0;';
-				v.style += getFontSize(p.text) +
-					getFontColor(p.text) + 
-					getFontStyle(p.text);
 				v.value = convertText(p.text);
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += (isLastLblHTML? '' :
+					getFontSize(p.text) +
+					getFontColor(p.text) + 
+					getFontStyle(p.text));
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
@@ -6249,14 +7704,13 @@ LucidImporter = {};
 					item2.vertex = true;
 					v.insert(item2);
 					
+					item2.value = convertText(p.Text);
 					item2.style += 	getStrokeColor(p, a) + 
 						getFillColor(p, a) +
 						getOpacity(p, a, item2) + 
 						getShadow(p) +
 						getStrokeWidth(p) +
-						getLabelStyle(p);
-					
-					item2.value = convertText(p.Text);
+						getLabelStyle(p, isLastLblHTML);
 					
 					if (p.Future)
 					{
@@ -6271,17 +7725,16 @@ LucidImporter = {};
 						v.style += 'dashed=1;';
 					}
 					
+					v.value = convertText(p.Text);
 					v.style += 	getStrokeColor(p, a) + 
 						getFillColor(p, a) +
 						getOpacity(p, a, v) + 
 						getShadow(p) +
 						getStrokeWidth(p) + 
-						getLabelStyle(p);
-				
-					v.value = convertText(p.Text);
+						getLabelStyle(p, isLastLblHTML);
 				}
 				
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
@@ -6366,8 +7819,8 @@ LucidImporter = {};
 				item1.vertex = true;
 				v.insert(item1);
 				
-				item1.style += 	getLabelStyle(p);
 				item1.value = convertText(p.Text);
+				item1.style += 	getLabelStyle(p, isLastLblHTML);
 				v.style += addAllStyles(v.style, p, a, v);
 				
 				break;
@@ -6384,12 +7837,10 @@ LucidImporter = {};
 					item2.vertex = true;
 					v.insert(item2);
 					
-					item2.style += 	
-						getLabelStyle(p.Text);
-					item2.style += addAllStyles(item2.style, p, a, item2);
-					
 					item2.value = convertText(p.Text);
-				
+					item2.style += 	
+						getLabelStyle(p.Text, isLastLblHTML);
+					item2.style += addAllStyles(item2.style, p, a, item2, isLastLblHTML);
 				break;
 
 			case 'UMLConstraintBlock' :				
@@ -6419,45 +7870,37 @@ LucidImporter = {};
 								getFontColor(p, label);
 				brace1.style += addAllStyles(brace1.style, p, a, brace1);
 				brace2.style += addAllStyles(brace2.style, p, a, brace2);
-				label.style += addAllStyles(label.style, p, a, label);
+				label.style += addAllStyles(label.style, p, a, label, isLastLblHTML);
 				break;
 
 			case 'UMLTextBlock' : 
-				v.style += 'strokeColor=none;' +
-					getLabelStyle(p.Text);
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
-
+				v.style += 'strokeColor=none;' +
+					getLabelStyle(p.Text, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				break;
 			case 'UMLComponentBoxBlock' :
 				break;
 			case 'BPMNActivity' :
+				v.value = convertText(p.Text);
+				
 				switch (p.bpmnActivityType)
 				{
 					case 1:
 						v.style += 
-							getLabelStyle(p.Text);
-					
-						v.value = convertText(p.Text);
+							getLabelStyle(p.Text, isLastLblHTML);
 						break
 					case 2:
 						v.style += 'shape=ext;double=1;' +
-							getLabelStyle(p.Text);
-				
-						v.value = convertText(p.Text);
+							getLabelStyle(p.Text, isLastLblHTML);
 						break
 					case 3:
 						v.style += 'shape=ext;dashed=1;dashPattern=2 1;' +
-							getLabelStyle(p.Text);
-
-						v.value = convertText(p.Text);
+							getLabelStyle(p.Text, isLastLblHTML);
 						break
 					case 4:
 						v.style += 'shape=ext;strokeWidth=2;' + 
-							getLabelStyle(p.Text);
-					
-						v.value = convertText(p.Text);
+							getLabelStyle(p.Text, isLastLblHTML);
 						break
 				}
 
@@ -6734,7 +8177,7 @@ LucidImporter = {};
 					
 				}
 
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 			case 'BPMNChoreography' :
@@ -6763,7 +8206,7 @@ LucidImporter = {};
 					v.insert(item1);
 				}
 
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 			case 'BPMNGateway' :
@@ -6830,7 +8273,7 @@ LucidImporter = {};
 						text1.vertex = true;
 						v.insert(text1);
 						text1.value = convertText(p.Text);
-						text1.style += getLabelStyle(p);
+						text1.style += getLabelStyle(p, isLastLblHTML);
 						break;
 					case 3:
 						var item1 = new mxCell('', new mxGeometry(0, 0, 12, 10), 'shape=singleArrow;part=1;arrowWidth=0.4;arrowSize=0.4;');
@@ -6856,7 +8299,7 @@ LucidImporter = {};
 						text1.vertex = true;
 						v.insert(text1);
 						text1.value = convertText(p.Text);
-						text1.style += getLabelStyle(p);
+						text1.style += getLabelStyle(p, isLastLblHTML);
 						break;
 				}
 				
@@ -6864,9 +8307,8 @@ LucidImporter = {};
 				
 				break;
 			case 'BPMNBlackPool' :
-				v.style += addAllStyles(v.style, p, a, v);
-
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				var item1 = new mxCell('', new mxGeometry(0, 0, w, h), 'fillColor=#000000;strokeColor=none;opacity=30;');
 				item1.vertex = true;
@@ -6888,36 +8330,169 @@ LucidImporter = {};
 				var item2 = new mxCell('', new mxGeometry(w * 0.05, h * 0.05, w * 0.95, h * 0.95), 'part=1;');
 				item2.vertex = true;
 				v.insert(item2);
-				
-				item2.style += 	
-					getLabelStyle(p.Text);
-				item2.style += addAllStyles(item2.style, p, a, item2);
-					
 				item2.value = convertText(p.Text);
+				item2.style += 	
+					getLabelStyle(p.Text, isLastLblHTML);
+				item2.style += addAllStyles(item2.style, p, a, item2, isLastLblHTML);
 				
 				break;
 				
 			case 'GSDFDDataStoreBlock' :
-				
-				v.style += 'shape=partialRectangle;right=0;' + 
-					getLabelStyle(p.Text);
-				v.style += addAllStyles(v.style, p, a, v);
-			
 				v.value = convertText(p.Text);
-
+				v.style += 'shape=partialRectangle;right=0;' + 
+					getLabelStyle(p.Text, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
+			
 				var item1 = new mxCell('', new mxGeometry(0, 0, w * 0.2, h), 'part=1;');
 				item1.vertex = true;
 				v.insert(item1);
 				
-				item1.style += 	
-					getLabelStyle(p.Number);
-				item1.style += addAllStyles(item1.style, p, a, item1);
-
 				item1.value = convertText(p.Number);
+				item1.style += 	
+					getLabelStyle(p.Number, isLastLblHTML);
+				item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 
 				break;
 				
 			case 'DefaultTableBlock' :
+				try
+				{
+					var rowsNum = p.RowHeights.length;
+					var colsNum = p.ColWidths.length;
+					var rowHs = [], colWs = [];
+					
+					for (var i = 0; i < rowsNum; i++)
+					{
+						rowHs[i] = p.RowHeights[i] * scale;
+					}
+					
+					for (var j = 0; j < colsNum; j++)
+					{
+						colWs[j] = p.ColWidths[j] * scale;
+					}
+					
+					//TODO Apply table layout when it's ready
+					v.style = 'group;dropTarget=0;';
+					
+					var bandedClr1 = p['BandedColor1'];
+					var bandedClr2 = p['BandedColor2'];
+					var bandedRows = p['BandedRows'];
+					var bandedCols = p['BandedCols'];
+					var hideH = p['HideH'];
+					var hideV = p['HideV'];
+					var tblVAlign = p['TextVAlign'];
+					var tblFillClr = p['FillColor'];
+					var tblStrokeStyle = p['StrokeStyle'];
+					delete p['StrokeStyle'];
+					var tblFillOp = getOpacity2(tblFillClr, 'fillOpacity');
+					var tblLnClr = p['LineColor'];
+					var tblLnOp = getOpacity2(tblLnClr, 'strokeOpacity');
+					var y = 0;
+					var skipCells = {};
+					
+					for (var i = 0; i < rowsNum; i++)
+					{
+						var x = 0;
+						var h = rowHs[i];
+						
+						for (var j = 0; j < colsNum; j++)
+						{
+							var cellIndex = i + ',' + j;
+							
+							if (skipCells[cellIndex])
+							{
+								x += colWs[j];
+								continue;
+							}
+							
+							var fillClr = p['CellFill_' + cellIndex];
+							var noBand = p['NoBand_' + cellIndex];
+							var spans = p['CellSize_' + cellIndex];
+							var cellLbl = p['Cell_' + cellIndex];
+							var vAlign = p['Cell_' + cellIndex + '_VAlign'];
+							var txtRot = p['Cell_' + cellIndex + '_TRotation'];
+							var borderWH = p['CellBorderWidthH_' + cellIndex];
+							var borderClrH = p['CellBorderColorH_' + cellIndex];
+							var borderStyleH = p['CellBorderStrokeStyleH_' + cellIndex];
+							var borderWV = p['CellBorderWidthV_' + cellIndex];
+							var borderClrV = p['CellBorderColorV_' + cellIndex];
+							var borderStyleV = p['CellBorderStrokeStyleV_' + cellIndex];
+							var borderClr = hideH? borderClrV : borderClrH; //TODO Border color, width & opacity in more complex especially with different border color for horizontal and vertical
+							var lnOp = getOpacity2(borderClr, 'strokeOpacity');
+							var borderW = hideH? borderWV : borderWH;
+							var borderStyle = hideH? borderStyleV : borderStyleH;
+							
+							fillClr = bandedRows && !noBand? (i % 2 == 0? bandedClr1: (bandedCols && !noBand? 
+									(j % 2 == 0? bandedClr1 : bandedClr2) : bandedClr2)) : (bandedCols && !noBand? 
+									(j % 2 == 0? bandedClr1 : bandedClr2) : fillClr);
+							var fillOp = getOpacity2(fillClr, 'fillOpacity') || tblFillOp;
+							
+							var w = colWs[j];
+							var ch = h;
+							var cw = w;
+							
+							//Spans
+							for (var k = i + 1; k < i + spans.h; k++)
+							{
+								if (rowHs[k] == null) continue;
+								
+								ch += rowHs[k];
+								skipCells[k + ',' + j] = true;
+								
+								for (var l = j + 1; l < j + spans.w; l++)
+								{
+									skipCells[l + ',' + j] = true;
+								}
+							}
+							
+							for (var k = j + 1; k < j + spans.w; k++)
+							{
+								if (colWs[k] == null) continue;
+								
+								cw += colWs[k];
+								skipCells[i + ',' + k] = true;
+								
+								for (var l = i + 1; l < i + spans.h; l++)
+								{
+									skipCells[l + ',' + k] = true;
+								}
+							}
+
+							var cell = new mxCell('', new mxGeometry(x, y, cw, ch), 'shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;'
+									+ (hideV? 'left=0;right=0;' : '') + (hideH? 'top=0;bottom=0;' : '')
+									+ createStyle(mxConstants.STYLE_FILLCOLOR, getColor(fillClr), getColor(tblFillClr))
+									+ createStyle(mxConstants.STYLE_STROKECOLOR, getColor(borderClr), getColor(tblLnClr))
+									+ (borderW != null ? createStyle(mxConstants.STYLE_STROKEWIDTH, Math.round(parseFloat(borderW) * scale), '1') : '')
+									+ (lnOp? lnOp : tblLnOp) 
+									+ fillOp
+									+ 'verticalAlign=' + (vAlign? vAlign : (tblVAlign? tblVAlign : 'middle')) + ';'
+									+ getStrokeStyle({StrokeStyle : borderStyle? borderStyle : (tblStrokeStyle? tblStrokeStyle : 'solid')})
+									+ (txtRot? 'horizontal=0;' : ''));
+							
+							cell.vertex = true;
+							cell.value = convertText(cellLbl);
+							cell.style +=
+								addAllStyles(cell.style, p, a, cell, isLastLblHTML) +
+							  (isLastLblHTML? '' : 
+								getFontSize(cellLbl) +
+								getFontColor(cellLbl) + 
+								getFontStyle(cellLbl) +
+								getTextAlignment(cellLbl, cell) + 
+								getTextLeftSpacing(cellLbl) +
+								getTextRightSpacing(cellLbl) + 
+								getTextTopSpacing(cellLbl) +
+								getTextBottomSpacing(cellLbl)
+							  ) + 
+								getTextGlobalSpacing(cellLbl) +
+								getTextVerticalAlignment(cellLbl);
+							v.insert(cell);
+							x += w;
+						}
+						
+						y += h;
+					}
+				}
+				catch(e){}
 				break;
 			case 'VSMDedicatedProcessBlock' :
 			case 'VSMProductionControlBlock' :
@@ -6932,7 +8507,7 @@ LucidImporter = {};
 					v.value = convertText(p.Resources);
 				}
 
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				if (obj.Class == 'VSMDedicatedProcessBlock')
 				{
@@ -6949,7 +8524,7 @@ LucidImporter = {};
 				text1.vertex = true;
 				v.insert(text1);
 				text1.value = convertText(p.Title);
-				text1.style += getLabelStyle(p.Title);
+				text1.style += getLabelStyle(p.Title, isLastLblHTML);
 
 				break;
 				
@@ -6957,25 +8532,23 @@ LucidImporter = {};
 				v.style += 'shape=mxgraph.lean_mapping.manufacturing_process_shared;spacingTop=-5;verticalAlign=top;';
 
 				v.value = convertText(p.Text);
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var text1 = new mxCell('', new mxGeometry(w * 0.1, h * 0.3, w * 0.8, h * 0.6), 'part=1;');
 				text1.vertex = true;
 				v.insert(text1);
 				text1.value = convertText(p.Resource);
 				text1.style += 	
-					getLabelStyle(p.Resource);
-				text1.style += addAllStyles(text1.style, p, a, text1);
+					getLabelStyle(p.Resource, isLastLblHTML);
+				text1.style += addAllStyles(text1.style, p, a, text1, isLastLblHTML);
 
 				break;
 				
 			case 'VSMWorkcellBlock' :
 				v.style += 'shape=mxgraph.lean_mapping.work_cell;verticalAlign=top;spacingTop=-2;';
-				
-				v.style += addAllStyles(v.style, p, a, v);
+				v.value = convertText(p.Text);				
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 		
-				v.value = convertText(p.Text);
-
 				break;
 			case 'VSMSafetyBufferStockBlock' :
 			case 'VSMDatacellBlock' :
@@ -7002,14 +8575,14 @@ LucidImporter = {};
 					item[i].vertex = true;
 					v.insert(item[i]);
 					item[i].value = convertText(p["cell_" + i]);
-					item[i].style += getLabelStyle(p["cell_" + i]);
+					item[i].style += getLabelStyle(p["cell_" + i], isLastLblHTML);
 				}
 				
 				break;
 			case 'VSMInventoryBlock' : 
 				v.style += 'shape=mxgraph.lean_mapping.inventory_box;verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 		
 				break;
 			case 'VSMSupermarketBlock' :
@@ -7040,7 +8613,7 @@ LucidImporter = {};
 					text[i].vertex = true;
 					v.insert(text[i]);
 					text[i].value = convertText(p["cell_" + i]);
-					text[i].style += getLabelStyle(p["cell_" + i]);
+					text[i].style += getLabelStyle(p["cell_" + i], isLastLblHTML);
 				}
 				
 				break;
@@ -7050,10 +8623,9 @@ LucidImporter = {};
 				v.value = 'FIFO';
 				break;
 			case 'VSMGoSeeProductionBlock' :
-				v.style += 'shape=ellipse;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
+				v.style += 'shape=ellipse;perimeter=ellipsePerimeter;';
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.17, h * 0.2, 13, 6), 'shape=mxgraph.lean_mapping.go_see_production_scheduling;flipH=1;part=1;whiteSpace=wrap;html=1;');
 				item1.vertex = true;
@@ -7079,10 +8651,9 @@ LucidImporter = {};
 				var item3 = new mxCell('', new mxGeometry(0, h * 0.2, w * 0.9, h * 0.8), 'shape=mxgraph.lean_mapping.go_see_production_scheduling;flipH=1;part=1;whiteSpace=wrap;html=1;spacing=2;' + st);
 				item3.vertex = true;
 				v.insert(item3);
-				item3.style += addAllStyles(item3.style, p, a, item3);
-				
 				item3.value = convertText(p.Text);
-
+				item3.style += addAllStyles(item3.style, p, a, item3, isLastLblHTML);
+				
 				break;
 			case 'VSMTimelineBlock' :
 				break;
@@ -7096,8 +8667,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 35, 40), 'strokeColor=none;shape=mxgraph.aws3.spot_instance;fillColor=#f58536;');
 					item2.geometry.relative = true;
@@ -7112,8 +8683,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 30, 40), 'strokeColor=none;shape=mxgraph.aws3.elastic_beanstalk;fillColor=#759C3E;');
 					item2.geometry.relative = true;
@@ -7128,8 +8699,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 32, 40), 'strokeColor=none;shape=mxgraph.aws3.ec2;fillColor=#F58534;');
 					item2.geometry.relative = true;
@@ -7144,8 +8715,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 32, 40), 'strokeColor=none;shape=mxgraph.aws3.permissions;fillColor=#146EB4;');
 					item2.geometry.relative = true;
@@ -7160,8 +8731,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 60, 40), 'strokeColor=none;shape=mxgraph.aws3.virtual_private_cloud;fillColor=#146EB4;');
 					item2.geometry.relative = true;
@@ -7176,8 +8747,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 60, 40), 'strokeColor=none;shape=mxgraph.aws3.cloud;fillColor=#F58534;');
 					item2.geometry.relative = true;
@@ -7192,8 +8763,8 @@ LucidImporter = {};
 					item1.geometry.relative = true;
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += addAllStyles(item1.style, p, a, item1);
 					item1.value = convertText(p.Title);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, 0, 25, 40), 'strokeColor=none;shape=mxgraph.aws3.corporate_data_center;fillColor=#7D7C7C;');
 					item2.geometry.relative = true;
@@ -7204,40 +8775,36 @@ LucidImporter = {};
 				else
 				{
 					v.style = 'resizeWidth=1;resizeHeight=1;fillColor=none;align=center;verticalAlign=bottom;spacing=2;rounded=1;arcSize=10;';
-					v.style += addAllStyles(v.style, p, a, v);
-					
 					v.value = convertText(p.Title);
+					v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				}
 
 				break;
 			case 'AWSElasticComputeCloudBlock2' :
 				v.style += 'strokeColor=none;shape=mxgraph.aws3.ec2;verticalLabelPosition=bottom;align=center;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Title);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
 			case 'AWSRoute53Block2' :
 				v.style += 'strokeColor=none;shape=mxgraph.aws3.route_53;verticalLabelPosition=bottom;align=center;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Title);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
 			case 'AWSRDBSBlock2' :
 				v.style += 'strokeColor=none;shape=mxgraph.aws3.rds;verticalLabelPosition=bottom;align=center;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Title);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
 			case 'NET_RingNetwork' :
 				v.style += 'strokeColor=none;fillColor=none;';
 				
-			   	var cell = new mxCell('', new mxGeometry(w * 0.25, h * 0.25, w * 0.5, h * 0.5), 'html=1;shape=ellipse;perimeter=ellipsePerimeter;strokeColor=#29AAE1;strokeWidth=2;');
+			   	var cell = new mxCell('', new mxGeometry(w * 0.25, h * 0.25, w * 0.5, h * 0.5), 'ellipse;html=1;strokeColor=#29AAE1;strokeWidth=2;');
 			   	cell.vertex = true;
 			   	v.insert(cell);
 			   	var cells = [cell];
@@ -7288,9 +8855,8 @@ LucidImporter = {};
 				
 			case 'EE_OpAmp' :
 				v.style += 'shape=mxgraph.electrical.abstract.operational_amp_1;'; 
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Title);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				if (p.ToggleCharge)
 				{
@@ -7305,9 +8871,8 @@ LucidImporter = {};
 			case 'EIDeadLetterChannelBlock' :
 			case 'EIGuaranteedDeliveryBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				if (obj.Class == 'EIMessageChannelBlock')
 				{
@@ -7351,9 +8916,8 @@ LucidImporter = {};
 
 			case 'EIChannelAdapterBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(0, h * 0.07, w * 0.21, h * 0.86), 'fillColor=#FFFF33;part=1;');
 				item1.vertex = true;
@@ -7396,11 +8960,10 @@ LucidImporter = {};
 			case 'EIDocumentMessageBlock' :
 			case 'EIEventMessageBlock' :
 				v.style += 'strokeColor=none;fillColor=none;verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
-				var item1 = new mxCell('', new mxGeometry(0, 0, 17, 17), 'shape=ellipse;fillColor=#808080;part=1;');
+				var item1 = new mxCell('', new mxGeometry(0, 0, 17, 17), 'ellipse;fillColor=#808080;part=1;');
 				item1.vertex = true;
 				v.insert(item1);
 				item1.style += addAllStyles(item1.style, p, a, item1);
@@ -7421,7 +8984,7 @@ LucidImporter = {};
 					{
 						case 'EIMessageBlock' :
 							item2[i].value = convertText(p['message_' + (i + 1)]);
-							item2.style += getLabelStyle(p['message_' + (i + 1)]);
+							item2.style += getLabelStyle(p['message_' + (i + 1)], isLastLblHTML);
 							break;
 						case 'EICommandMessageBlock' :
 							item2[i].value = 'C';
@@ -7456,9 +9019,8 @@ LucidImporter = {};
 				
 			case 'EIMessageEndpointBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-		    	v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.45, h * 0.25, w * 0.3, h * 0.5), 'part=1;fillColor=#ffffff');
 				item1.vertex = true;
@@ -7475,9 +9037,8 @@ LucidImporter = {};
 				break;
 			case 'EIPublishSubscribeChannelBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-		    	v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 			   	var edge1 = new mxCell('', new mxGeometry(0, 0, 0, 0), 'edgeStyle=none;rounded=0;endArrow=block;dashed=0;html=1;strokeColor=#818181;strokeWidth=1;endFill=1;endSize=6;');
 			   	edge1.geometry.relative = true;
@@ -7498,9 +9059,8 @@ LucidImporter = {};
 				
 			case 'EIMessageBusBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-		    	v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 			   	var edge1 = new mxCell('', new mxGeometry(0, 0, 0, 0), 'edgeStyle=none;rounded=0;endArrow=block;dashed=0;html=1;strokeWidth=1;endFill=1;endSize=4;startArrow=block;startFill=1;startSize=4;');
 			   	edge1.geometry.relative = true;
@@ -7530,9 +9090,8 @@ LucidImporter = {};
 				
 			case 'EIRequestReplyBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-		    	v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.2, h * 0.21, w * 0.16, h * 0.24), 'part=1;fillColor=#ffffff;');
 				item1.vertex = true;
@@ -7560,9 +9119,8 @@ LucidImporter = {};
 
 			case 'EIReturnAddressBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.1, h * 0.15, w * 0.8, h * 0.7), 'part=1;shape=mxgraph.eip.retAddr;fillColor=#FFE040;');
 				item1.vertex = true;
@@ -7573,11 +9131,10 @@ LucidImporter = {};
 				
 			case 'EICorrelationIDBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
-				var item1 = new mxCell('', new mxGeometry(w * 0.04, h * 0.06, w * 0.18, h * 0.28), 'shape=ellipse;fillColor=#808080;part=1;');
+				var item1 = new mxCell('', new mxGeometry(w * 0.04, h * 0.06, w * 0.18, h * 0.28), 'ellipse;fillColor=#808080;part=1;');
 				item1.vertex = true;
 				v.insert(item1);
 				item1.style += addAllStyles(item1.style, p, a, item1);
@@ -7603,7 +9160,7 @@ LucidImporter = {};
 				edge1.geometry.points = wp;
 				select.push(graph.addCell(edge1, null, null, null, null));
 	
-				var item3 = new mxCell('', new mxGeometry(w * 0.6, h * 0.06, w * 0.18, h * 0.28), 'shape=ellipse;fillColor=#808080;part=1;');
+				var item3 = new mxCell('', new mxGeometry(w * 0.6, h * 0.06, w * 0.18, h * 0.28), 'ellipse;fillColor=#808080;part=1;');
 				item3.vertex = true;
 				v.insert(item3);
 				item3.style += 
@@ -7651,9 +9208,8 @@ LucidImporter = {};
 			case 'EIMessageSequenceBlock' :
 				
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('1', new mxGeometry(w * 0.2, h * 0.4, w * 0.1, h * 0.19), 'fontStyle=1;fillColor=#ffffff;fontSize=' + defaultFontSize + ';part=1;');
 				item1.vertex = true;
@@ -7694,9 +9250,8 @@ LucidImporter = {};
 			case 'EIMessageExpirationBlock' :
 				
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.3, h * 0.2, w * 0.4, h * 0.6), 'shape=mxgraph.ios7.icons.clock;fillColor=#ffffff;flipH=1;part=1;');
 				item1.vertex = true;
@@ -7707,10 +9262,9 @@ LucidImporter = {};
 				
 			case 'EIMessageBrokerBlock' :
 				v.style += 'strokeColor=none;fillColor=none;verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
-
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
+				
 				var item1 = new mxCell('', new mxGeometry(w * 0.38, h * 0.42, w * 0.24, h * 0.16), 'part=1;fillColor=#aefe7d;');
 				item1.vertex = true;
 				v.insert(item1);
@@ -7791,9 +9345,8 @@ LucidImporter = {};
 				break;
 			case 'EIDurableSubscriberBlock' :	
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 			   	var edge1 = new mxCell('', new mxGeometry(0, 0, 0, 0), 'edgeStyle=elbowEdgeStyle;rounded=0;endArrow=block;endFill=1;endSize=6;');
 			   	edge1.geometry.relative = true;
@@ -7814,9 +9367,8 @@ LucidImporter = {};
 				
 			case 'EIControlBusBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.25, h * 0.25, w * 0.5, h * 0.5), 'shape=mxgraph.eip.control_bus;part=1;');
 				item1.vertex = true;
@@ -7827,11 +9379,10 @@ LucidImporter = {};
 				
 			case 'EIMessageHistoryBlock' :
 				v.style += 'strokeColor=none;fillColor=none;verticalLabelPosition=bottom;verticalAlign=top;';
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
-				var item1 = new mxCell('', new mxGeometry(0, 0, 17, 17), 'shape=ellipse;fillColor=#808080;part=1;');
+				var item1 = new mxCell('', new mxGeometry(0, 0, 17, 17), 'ellipse;fillColor=#808080;part=1;');
 				item1.vertex = true;
 				v.insert(item1);
 				item1.style += addAllStyles(item1.style, p, a, item1);
@@ -7855,9 +9406,9 @@ LucidImporter = {};
 				item4.vertex = true;
 				v.insert(item4);
 				item4.value = convertText(p.message_0);
-				item4.style += getLabelStyle(p.message_0);
+				item4.style += getLabelStyle(p.message_0, isLastLblHTML);
 				
-				item4.style += addAllStyles(item4.style, p, a, item4);
+				item4.style += addAllStyles(item4.style, p, a, item4, isLastLblHTML);
 
 				edge4 = new mxCell('', new mxGeometry(0, 0, 0, 0), 'edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0;exitY=0.5;endArrow=none;dashed=0;html=1;');
 		    	edge4.geometry.relative = true;
@@ -7881,10 +9432,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(w - 20, currY, 20, 20), 'part=1;');
 					item2[i].vertex = true;
 					item2[i].value = convertText(p['message_' + (i + 1)]);
-					item2.style += getLabelStyle(p['message_' + (i + 1)]);
+					item2.style += getLabelStyle(p['message_' + (i + 1)], isLastLblHTML);
 					v.insert(item2[i]);
 					
-					item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
+					item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 	
 					edge[i] = new mxCell('', new mxGeometry(0, 0, 0, 0), 'edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0;exitY=0.5;endArrow=none;dashed=0;html=1;');
 			    	edge[i].geometry.relative = true;
@@ -7944,7 +9495,7 @@ LucidImporter = {};
 				
 				for (var i = 0; i < p.LightCount; i++)
 				{
-					item2[i] = new mxCell('', new mxGeometry(lightOffset + lightW * i + (lightW - trueW) / 2, h * 0.25, trueW, h * 0.75), 'part=1;shape=ellipse;');
+					item2[i] = new mxCell('', new mxGeometry(lightOffset + lightW * i + (lightW - trueW) / 2, h * 0.25, trueW, h * 0.75), 'ellipse;part=1;');
 					item2[i].vertex = true;
 					v.insert(item2[i]);
 					item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
@@ -8110,8 +9661,7 @@ LucidImporter = {};
 				
 			case 'PEVesselBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-					
-					v.value = convertText(p.Text);
+				v.value = convertText(p.Text);
 				
 				switch (p.vesselType)
 				{
@@ -8123,14 +9673,13 @@ LucidImporter = {};
 						break;
 				}
 
-		    	v.style += addAllStyles(v.style, p, a, v);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 				
 			case 'PEClosedTankBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-					
-					v.value = convertText(p.Text);
+				v.value = convertText(p.Text);
 
 				if (p.peakedRoof == 1 && p.stumpType == 0)
 				{
@@ -8141,13 +9690,12 @@ LucidImporter = {};
 					v.style += 'shape=mxgraph.pid.vessels.tank_(boot);';
 				}
 				
-		    	v.style += addAllStyles(v.style, p, a, v);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				break;
 				
 			case 'PEColumnBlock' :
 				v.style += 'verticalLabelPosition=bottom;verticalAlign=top;';
-					
-					v.value = convertText(p.Text);
+				v.value = convertText(p.Text);
 
 				if (p.columnType == 0)
 				{
@@ -8158,15 +9706,14 @@ LucidImporter = {};
 					v.style += 'shape=mxgraph.pid.vessels.tank;';
 				}
 				
-		    	v.style += addAllStyles(v.style, p, a, v);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 				
 			case 'PECompressorTurbineBlock' :
 				v.style += 'strokeColor=none;fillColor=none;'; 
-		    	v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Text);
+		    	v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(0, h * 0.2, w, h * 0.6), 'part=1;shape=trapezoid;perimeter=trapezoidPerimeter;direction=south;');
 				item1.vertex = true;
@@ -8230,10 +9777,9 @@ LucidImporter = {};
 				
 			case 'PEMotorDrivenTurbineBlock' :
 				
-				v.style += 'shape=ellipse;'; 
-				v.style += addAllStyles(v.style, p, a, v);
-				
+				v.style += 'shape=ellipse;perimeter=ellipsePerimeter;'; 
 				v.value = convertText(p.Text);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item1 = new mxCell('', new mxGeometry(w * 0.2, h * 0.2, w * 0.6, h * 0.6), 'part=1;shape=trapezoid;perimeter=trapezoidPerimeter;direction=south;');
 				item1.vertex = true;
@@ -8282,18 +9828,16 @@ LucidImporter = {};
 					var item1 = new mxCell('', new mxGeometry(0, 0, w, w * 0.5), 'part=1;strokeColor=none;fillColor=none;');
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += getLabelStyle(p.TopText);
-					item1.style += addAllStyles(item1.style, p, a, item1);
-					
 					item1.value = convertText(p.TopText);
+					item1.style += getLabelStyle(p.TopText, isLastLblHTML);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, w * 0.5, w, w * 0.5), 'part=1;strokeColor=none;fillColor=none;');
 					item2.vertex = true;
 					v.insert(item2);
-					item2.style += getLabelStyle(p.BotText);
-					item2.style += addAllStyles(item2.style, p, a, item2);
-					
 					item2.value = convertText(p.BotText);
+					item2.style += getLabelStyle(p.BotText, isLastLblHTML);
+					item2.style += addAllStyles(item2.style, p, a, item2, isLastLblHTML);
 				}
 				else
 				{
@@ -8301,18 +9845,16 @@ LucidImporter = {};
 					var item1 = new mxCell('', new mxGeometry(0, 0, w, h * 0.5), 'part=1;strokeColor=none;fillColor=none;');
 					item1.vertex = true;
 					v.insert(item1);
-					item1.style += getLabelStyle(p.TopText);
-					item1.style += addAllStyles(item1.style, p, a, item1);
-					
 					item1.value = convertText(p.TopText);
+					item1.style += getLabelStyle(p.TopText, isLastLblHTML);
+					item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 					
 					var item2 = new mxCell('', new mxGeometry(0, h * 0.5, w, h * 0.5), 'part=1;strokeColor=none;fillColor=none;');
 					item2.vertex = true;
 					v.insert(item2);
-					item2.style += getLabelStyle(p.BotText);
-					item2.style += addAllStyles(item2.style, p, a, item2);
-					
 					item2.value = convertText(p.BotText);
+					item2.style += getLabelStyle(p.BotText, isLastLblHTML);
+					item2.style += addAllStyles(item2.style, p, a, item2, isLastLblHTML);
 				}
 				
 				switch(p.instrumentLocation)
@@ -8390,18 +9932,19 @@ LucidImporter = {};
 							var item1 = new mxCell('', new mxGeometry(w * 0.325, 0, w * 0.35, h * 0.35), 'part=1;strokeColor=none;fillColor=none;spacingTop=2;');
 							item1.vertex = true;
 							v.insert(item1);
-							item1.style += 'fontSize=6;' + 
+							item1.value = convertText(p.PoweredText);
+							item1.style += (isLastLblHTML? '' : 
+								'fontSize=6;' + 
 								getFontColor(p.PoweredText) + 
 								getFontStyle(p.PoweredText) +
 								getTextAlignment(p.PoweredText) + 
 								getTextLeftSpacing(p.PoweredText) +
 								getTextRightSpacing(p.PoweredText) + 
 								getTextBottomSpacing(p.PoweredText) + 
-								getTextGlobalSpacing(p.PoweredText) +
+								getTextGlobalSpacing(p.PoweredText)
+								) +
 								getTextVerticalAlignment(p.PoweredText);
-							item1.style += addAllStyles(item1.style, p, a, item1);
-							
-							item1.value = convertText(p.PoweredText);
+							item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
 						}
 						else
 						{
@@ -8440,7 +9983,7 @@ LucidImporter = {};
 					}
 				}
 				
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 
@@ -8486,12 +10029,12 @@ LucidImporter = {};
 				v.style += addAllStyles(v.style, p, a, v);
 				break;
 			case 'UI2WindowBlock' :
+				v.value = convertText(p.Title);
 				v.style += 'shape=mxgraph.mockup.containers.window;mainText=;align=center;verticalAlign=top;spacing=5;' +
+					(isLastLblHTML? '' :	
 					getFontSize(p.Title) +
 					getFontColor(p.Title) + 
-					getFontStyle(p.Title);
-
-				v.value = convertText(p.Title);
+					getFontStyle(p.Title));
 
 				if (p.vScroll == 1)
 				{
@@ -8529,24 +10072,22 @@ LucidImporter = {};
 					v.insert(item4);
 				}
 
-				v.style += addAllStyles(v.style, p, a, v);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				break;
 			case 'UI2DialogBlock' :
-				v.style += 
-					getLabelStyle(p.Text);
-
 				v.value = convertText(p.Text);
+				v.style += 
+					getLabelStyle(p.Text, isLastLblHTML);
 
 				var item1 = new mxCell('', new mxGeometry(0, 0, w, 30), 'part=1;resizeHeight=0;');
 				item1.vertex = true;
 				v.insert(item1);
-				item1.style += getLabelStyle(p.Title);
-				item1.style += addAllStyles(item1.style, p, a, item1);
-				
 				item1.value = convertText(p.Title);
-
-				var item2 = new mxCell('', new mxGeometry(1, 0.5, 20, 20), 'part=1;shape=ellipse;strokeColor=#008cff;resizable=0;fillColor=none;html=1;');
+				item1.style += getLabelStyle(p.Title, isLastLblHTML);
+				item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
+				
+				var item2 = new mxCell('', new mxGeometry(1, 0.5, 20, 20), 'ellipse;part=1;strokeColor=#008cff;resizable=0;fillColor=none;html=1;');
 			   	item2.geometry.relative = true;
 			   	item2.geometry.offset = new mxPoint(-25, -10);
 				item2.vertex = true;
@@ -8603,30 +10144,27 @@ LucidImporter = {};
 						item1[i] = new mxCell('', new mxGeometry(0, i * itemH, w, itemH), 'part=1;fillColor=#000000;fillOpacity=25;');
 						item1[i].vertex = true;
 						v.insert(item1[i]);
-						item1[i].style += 
-							getLabelStyle(p['Panel_' + (i + 1)]);
-						
 						item1[i].value = convertText(p['Panel_' + (i + 1)]);
+						item1[i].style += 
+							getLabelStyle(p['Panel_' + (i + 1)], isLastLblHTML);
 					}
 					else if (i == (p.Selected - 1))
 					{
 						item1[i] = new mxCell('', new mxGeometry(0, i * itemH, w, itemH), 'part=1;fillColor=none;');
 						item1[i].vertex = true;
 						v.insert(item1[i]);
-						item1[i].style += 
-							getLabelStyle(p['Panel_' + (i + 1)]);
-						
 						item1[i].value = convertText(p['Panel_' + (i + 1)]);
+						item1[i].style += 
+							getLabelStyle(p['Panel_' + (i + 1)], isLastLblHTML);
 					}
 					else
 					{
 						item1[i] = new mxCell('', new mxGeometry(0, h - (p.Panels - p.Selected) * itemH + (i - p.Selected) * itemH, w, itemH), 'part=1;fillColor=#000000;fillOpacity=25;');
 						item1[i].vertex = true;
 						v.insert(item1[i]);
-						item1[i].style += 
-							getLabelStyle(p['Panel_' + (i + 1)]);
-						
 						item1[i].value = convertText(p['Panel_' + (i + 1)]);
+						item1[i].style += 
+							getLabelStyle(p['Panel_' + (i + 1)], isLastLblHTML);
 					}
 
 					if (item1[i].style.indexOf(';align=') < 0)
@@ -8695,15 +10233,14 @@ LucidImporter = {};
 				}
 				item4.vertex = true;
 				v.insert(item4);
+				item4.value = convertText(p['Content_1']);
 				item4.style += 
-					getLabelStyle(p['Content_1']);
+					getLabelStyle(p['Content_1'], isLastLblHTML);
 				
-				if (item4.style.indexOf(';align=') < 0)
+				if (!isLastLblHTML && item4.style.indexOf(';align=') < 0)
 				{
 					item4.style += 'align=left;spacingLeft=5;';
 				}
-				
-				item4.value = convertText(p['Content_1']);
 				
 				v.style += addAllStyles(v.style, p, a, v);
 
@@ -8730,10 +10267,9 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(startW + i * itemW, 0, itemW - itemS, itemH), '');
 						item2[i].vertex = true;
 						v.insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
-						
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
 					}
 					else
 					{
@@ -8746,9 +10282,9 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, 0, itemW - itemS, itemH), 'fillColor=#000000;fillOpacity=25;');
 						item2[i].vertex = true;
 						item1[i].insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
 					}
 
 					if (item2[i].style.indexOf(';align=') < 0)
@@ -8832,11 +10368,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(i * itemW, 0, itemW - itemS, itemH), '');
 						item2[i].vertex = true;
 						v.insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 					else
 					{
@@ -8848,11 +10383,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, 0, itemW - itemS, itemH), 'fillColor=#000000;fillOpacity=25;');
 						item2[i].vertex = true;
 						item1[i].insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 
 					if (item2[i].style.indexOf(';align=') < 0)
@@ -8935,11 +10469,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, startH + i * itemH, itemW, itemH - itemS), '');
 						item2[i].vertex = true;
 						v.insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 					else
 					{
@@ -8951,10 +10484,9 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, 0, itemW, itemH - itemS), 'fillColor=#000000;fillOpacity=25;');
 						item2[i].vertex = true;
 						item1[i].insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Tab_' + (i + 1)]);
-						
 						item2[i].value = convertText(p['Tab_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Tab_' + (i + 1)], isLastLblHTML);
 					}
 
 					if (item2[i].style.indexOf(';align=') < 0)
@@ -9028,9 +10560,10 @@ LucidImporter = {};
 					item1[i] = new mxCell('', new mxGeometry(0, i * itemH + itemH * 0.5 - 5, 10, 10), 'labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
 					item1[i].vertex = true;
 					v.insert(item1[i]);
+					item1[i].value = convertText(p['Option_' + (i + 1)]);
 					item1[i].style += 
-						getLabelStyle(p['Option_' + (i + 1)]);
-					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i]);
+						getLabelStyle(p['Option_' + (i + 1)], isLastLblHTML);
+					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i], isLastLblHTML);
 					
 					if (p.Selected[i + 1] != null)
 					{
@@ -9052,7 +10585,6 @@ LucidImporter = {};
 						}
 					}
 					
-					item1[i].value = convertText(p['Option_' + (i + 1)]);
 				}
 				
 				break;
@@ -9068,9 +10600,10 @@ LucidImporter = {};
 					item1[i] = new mxCell('', new mxGeometry(i * itemW, h * 0.5 - 5, 10, 10), 'labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
 					item1[i].vertex = true;
 					v.insert(item1[i]);
+					item1[i].value = convertText(p['Option_' + (i + 1)]);
 					item1[i].style += 
-						getLabelStyle(p['Option_' + (i + 1)]);
-					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i]);
+						getLabelStyle(p['Option_' + (i + 1)], isLastLblHTML);
+					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i], isLastLblHTML);
 					
 					if (p.Selected[i + 1] != null)
 					{
@@ -9092,7 +10625,6 @@ LucidImporter = {};
 						}
 					}
 					
-					item1[i].value = convertText(p['Option_' + (i + 1)]);
 				}
 				
 				break;
@@ -9105,12 +10637,13 @@ LucidImporter = {};
 				
 				for (var i = 0; i < p.Options; i++)
 				{
-					item1[i] = new mxCell('', new mxGeometry(0, i * itemH + itemH * 0.5 - 5, 10, 10), 'shape=ellipse;labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
+					item1[i] = new mxCell('', new mxGeometry(0, i * itemH + itemH * 0.5 - 5, 10, 10), 'ellipse;labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
 					item1[i].vertex = true;
 					v.insert(item1[i]);
+					item1[i].value = convertText(p['Option_' + (i + 1)]);
 					item1[i].style += 
-						getLabelStyle(p['Option_' + (i + 1)]);
-					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i]);
+						getLabelStyle(p['Option_' + (i + 1)], isLastLblHTML);
+					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i], isLastLblHTML);
 					
 					if (p.Selected != null)
 					{
@@ -9124,15 +10657,13 @@ LucidImporter = {};
 								fc = 'fillColor=#000000;'
 							}
 							
-							item2[i] = new mxCell('', new mxGeometry(2.5, 2.5, 5, 5), 'shape=ellipse;');
+							item2[i] = new mxCell('', new mxGeometry(2.5, 2.5, 5, 5), 'ellipse;');
 							item2[i].vertex = true;
 							item1[i].insert(item2[i]);
 							item2[i].style += fc; 
 							item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
 						}
 					}
-					
-					item1[i].value = convertText(p['Option_' + (i + 1)]);
 				}
 				
 				break;
@@ -9145,12 +10676,13 @@ LucidImporter = {};
 				
 				for (var i = 0; i < p.Options; i++)
 				{
-					item1[i] = new mxCell('', new mxGeometry(i * itemW, h * 0.5 - 5, 10, 10), 'shape=ellipse;labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
+					item1[i] = new mxCell('', new mxGeometry(i * itemW, h * 0.5 - 5, 10, 10), 'ellipse;labelPosition=right;part=1;verticalLabelPosition=middle;align=left;verticalAlign=middle;spacingLeft=3;');
 					item1[i].vertex = true;
 					v.insert(item1[i]);
+					item1[i].value = convertText(p['Option_' + (i + 1)]);
 					item1[i].style += 
-						getLabelStyle(p['Option_' + (i + 1)]);
-					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i]);
+						getLabelStyle(p['Option_' + (i + 1)], isLastLblHTML);
+					item1[i].style += addAllStyles(item1[i].style, p, a, item1[i], isLastLblHTML);
 					
 					if (p.Selected != null)
 					{
@@ -9164,7 +10696,7 @@ LucidImporter = {};
 								fc = 'fillColor=#000000;'
 							}
 							
-							item2[i] = new mxCell('', new mxGeometry(2, 2, 6, 6), 'shape=ellipse;part=1;');
+							item2[i] = new mxCell('', new mxGeometry(2, 2, 6, 6), 'ellipse;part=1;');
 							item2[i].vertex = true;
 							item1[i].insert(item2[i]);
 							item2[i].style += fc; 
@@ -9172,7 +10704,6 @@ LucidImporter = {};
 						}
 					}
 					
-					item1[i].value = convertText(p['Option_' + (i + 1)]);
 				}
 				
 				break;
@@ -9197,12 +10728,11 @@ LucidImporter = {};
 				var item1 = new mxCell('', new mxGeometry(0, 0, w * 0.6, h), 'part=1;');
 				item1.vertex = true;
 				v.insert(item1);
+				item1.value = convertText(p.Date);
 				item1.style +=  
-					getLabelStyle(p.Date);
+					getLabelStyle(p.Date, isLastLblHTML);
 				v.style += addAllStyles(v.style, p, a, v);
 				
-				item1.value = convertText(p.Date);
-
 				var fc = getStrokeColor(p, a);
 				fc = fc.replace('strokeColor', 'fillColor');
 				
@@ -9224,9 +10754,8 @@ LucidImporter = {};
 					getFontSize(p.Search) +
 					getFontColor(p.Search) + 
 					getFontStyle(p.Search);
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Search);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 
@@ -9243,9 +10772,8 @@ LucidImporter = {};
 					getFontSize(p.Number) +
 					getFontColor(p.Number) + 
 					getFontStyle(p.Number);
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Number);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
@@ -9265,11 +10793,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(i * itemW, 0, itemW, h), '');
 						item2[i].vertex = true;
 						v.insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Button_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Button_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Button_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 					else
 					{
@@ -9282,11 +10809,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, 0, itemW, h), 'fillColor=#000000;fillOpacity=25;');
 						item2[i].vertex = true;
 						item1[i].insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Button_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Button_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Button_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 				}
 				
@@ -9306,11 +10832,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, i * itemH, w, itemH), '');
 						item2[i].vertex = true;
 						v.insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Button_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Button_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Button_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 					else
 					{
@@ -9322,11 +10847,10 @@ LucidImporter = {};
 						item2[i] = new mxCell('', new mxGeometry(0, 0, w, itemH), 'fillColor=#000000;fillOpacity=25;');
 						item2[i].vertex = true;
 						item1[i].insert(item2[i]);
-						item2[i].style += 
-							getLabelStyle(p['Button_' + (i + 1)]);
-						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i]);
-						
 						item2[i].value = convertText(p['Button_' + (i + 1)]);
+						item2[i].style += 
+							getLabelStyle(p['Button_' + (i + 1)], isLastLblHTML);
+						item2[i].style += addAllStyles(item2[i].style, p, a, item2[i], isLastLblHTML);
 					}
 				}
 				
@@ -9353,10 +10877,9 @@ LucidImporter = {};
 					
 					item2[i].vertex = true;
 					v.insert(item2[i]);
-					item2[i].style += 
-						getLabelStyle(p['Link_' + (i + 1)]);
-					
 					item2[i].value = convertText(p['Link_' + (i + 1)]);
+					item2[i].style += 
+						getLabelStyle(p['Link_' + (i + 1)], isLastLblHTML);
 				}
 				
 				break;
@@ -9374,10 +10897,9 @@ LucidImporter = {};
 					item1[i] = new mxCell('', new mxGeometry(i * itemW, 0, itemW, h), 'fillColor=none;strokeColor=none;');
 					item1[i].vertex = true;
 					v.insert(item1[i]);
-					item1[i].style += 
-						getLabelStyle(p['Link_' + (i + 1)]);
-					
 					item1[i].value = convertText(p['Link_' + (i + 1)]);
+					item1[i].style += 
+						getLabelStyle(p['Link_' + (i + 1)], isLastLblHTML);
 				}
 				
 				for (var i = 1; i < (p.Links); i++)
@@ -9412,10 +10934,9 @@ LucidImporter = {};
 					item1[i].geometry.offset = new mxPoint(i * itemW, 0);
 					item1[i].vertex = true;
 					v.insert(item1[i]);
-					item1[i].style += 
-						getLabelStyle(p['MenuItem_' + (i + 1)]);
-					
 					item1[i].value = convertText(p['MenuItem_' + (i + 1)]);
+					item1[i].style += 
+						getLabelStyle(p['MenuItem_' + (i + 1)], isLastLblHTML);
 				}
 				
 				break;
@@ -9477,7 +10998,7 @@ LucidImporter = {};
 					{
 						if (p.Icons[(i + 1)] == 'dot')
 						{
-							icon[i] = new mxCell('', new mxGeometry(0, 0.5, 8, 8), 'shape=ellipse;strokeColor=none;');
+							icon[i] = new mxCell('', new mxGeometry(0, 0.5, 8, 8), 'ellipse;strokeColor=none;');
 							icon[i].geometry.offset = new mxPoint(6, -4);
 						}
 						else if (p.Icons[(i + 1)] == 'check')
@@ -9543,40 +11064,35 @@ LucidImporter = {};
 				break;
 				
 			case 'UI2TooltipSquareBlock' :
-				v.style += 'html=1;shape=callout;flipV=1;base=13;size=7;position=0.5;position2=0.66;rounded=1;arcSize=' + (p.RoundCorners) + ';' +
-					getLabelStyle(p.Tip);
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Tip);
+				v.style += 'html=1;shape=callout;flipV=1;base=13;size=7;position=0.5;position2=0.66;rounded=1;arcSize=' + (p.RoundCorners) + ';' +
+					getLabelStyle(p.Tip, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 			case 'UI2CalloutBlock' :
-				v.style += 'shape=ellipse;' +
-					getLabelStyle(p.Txt);
-				v.style += addAllStyles(v.style, p, a, v);
-				
 				v.value = convertText(p.Txt);
-				
+				v.style += 'shape=ellipse;perimeter=ellipsePerimeter;' +
+					getLabelStyle(p.Txt, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				break;
 				
 			case 'UI2AlertBlock' :
-				v.style += 
-					getLabelStyle(p.Txt);
-				v.style += addAllStyles(v.style, p, a, v);
-
 				v.value = convertText(p.Txt);
+				v.style += 
+					getLabelStyle(p.Txt, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				var item1 = new mxCell('', new mxGeometry(0, 0, w, 30), 'part=1;resizeHeight=0;');
 				item1.vertex = true;
 				v.insert(item1);
-				item1.style +=
-					getLabelStyle(p.Title);
-				item1.style += addAllStyles(item1.style, p, a, item1);
-				
 				item1.value = convertText(p.Title);
-
-				var item2 = new mxCell('', new mxGeometry(1, 0.5, 20, 20), 'part=1;shape=ellipse;strokeColor=#008cff;resizable=0;fillColor=none;html=1;');
+				item1.style +=
+					getLabelStyle(p.Title, isLastLblHTML);
+				item1.style += addAllStyles(item1.style, p, a, item1, isLastLblHTML);
+				
+				var item2 = new mxCell('', new mxGeometry(1, 0.5, 20, 20), 'ellipse;part=1;strokeColor=#008cff;resizable=0;fillColor=none;html=1;');
 			   	item2.geometry.relative = true;
 			   	item2.geometry.offset = new mxPoint(-25, -10);
 				item2.vertex = true;
@@ -9596,11 +11112,10 @@ LucidImporter = {};
 				   	item3[i].geometry.offset = new mxPoint(-totalW * 0.5 + i * (bw + bs), -40);
 					item3[i].vertex = true;
 					v.insert(item3[i]);
-					item3[i].style +=
-						getLabelStyle(p['Button_' + (i + 1)]);
-					item3[i].style += addAllStyles(item3[i].style, p, a, item3[i]);
-					
 					item3[i].value = convertText(p['Button_' + (i + 1)]);
+					item3[i].style +=
+						getLabelStyle(p['Button_' + (i + 1)], isLastLblHTML);
+					item3[i].style += addAllStyles(item3[i].style, p, a, item3[i], isLastLblHTML);
 				}
 				
 				break;
@@ -9609,7 +11124,7 @@ LucidImporter = {};
 				if (p.Simple == 0)
 				{
 					var st = getFillColor(p, a);
-					var th = Math.round(p.TitleHeight * scale);
+					var th = Math.round(p.TitleHeight * scale) || 25;
 					st = st.replace('fillColor', 'swimlaneFillColor');
 					
 					if (st == '')
@@ -9617,39 +11132,53 @@ LucidImporter = {};
 						st = 'swimlaneFillColor=#ffffff;'
 					}
 					
-					v.style += 'swimlane;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;' + st +
-						'startSize=' + th + ';' +
-						getLabelStyle(p.Title);
-					v.style += addAllStyles(v.style, p, a, v);
-						
 					v.value = convertText(p.Title);
+					v.style += 'swimlane;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;' + st +
+						'startSize=' + th + ';' +
+						getLabelStyle(p.Title, isLastLblHTML);
+					v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 					
 					var item = new Array();
 					var divider = new Array();
 					var currH = th / h;
+					var curY = th;
 					
 					for (var i = 0; i <= p.Attributes; i++)
 					{
 						if (i > 0)
 						{
-							divider[i] = new mxCell('', new mxGeometry(0, 0, 40, 8), 'line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;');
+							divider[i] = new mxCell('', new mxGeometry(0, curY, 40, 8), 'line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;');
+							curY += 8;
 							divider[i].vertex = true;
 							v.insert(divider[i]);
 						}
 						
 						var itemH = 0;
 						
-						if (i < p.Attributes)
+						//Text2 is used when p.Attributes is zero!
+						if (p.Attributes == 0)
 						{
-							itemH = p['Text' + (i + 1) + 'Percent'];
-							currH += itemH;
+							i = 1;
+							itemH = 1;
 						}
 						else
 						{
-							itemH = 1 - currH;
+							if (i < p.Attributes)
+							{
+								itemH = p['Text' + (i + 1) + 'Percent'];
+								currH += itemH;
+							}
+							else
+							{
+								itemH = 1 - currH;
+							}
 						}
 						
-						item[i] = new mxCell('', new mxGeometry(0, 0, w, Math.round((h - th) * itemH)), 'part=1;resizeHeight=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
+						var extH = p.ExtraHeightSet && i == 1? (p.ExtraHeight * scale) : 0;
+						
+						var curH = Math.round((h - th) * itemH) + extH;
+						item[i] = new mxCell('', new mxGeometry(0, curY, w, curH), 'part=1;html=1;resizeHeight=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
+						curY += curH;
 						item[i].vertex = true;
 						v.insert(item[i]);
 						item[i].style += st +
@@ -9663,11 +11192,10 @@ LucidImporter = {};
 				}
 				else
 				{
-					v.style += 
-						getLabelStyle(p.Title);
-					v.style += addAllStyles(v.style, p, a, v);
-						
 					v.value = convertText(p.Title);
+					v.style += 
+						getLabelStyle(p.Title, isLastLblHTML);
+					v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				}
 
 				break;
@@ -9682,10 +11210,11 @@ LucidImporter = {};
 					st = 'swimlaneFillColor=#ffffff;'
 				}
 				
+				v.value = convertText(p.Name);
 				v.style += 'swimlane;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;' + st +
 					'startSize=' + th + ';' +
-					getLabelStyle(p.Name);
-				v.style += addAllStyles(v.style, p, a, v);
+					getLabelStyle(p.Name, isLastLblHTML);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 
 				if (p.ShadedHeader)
 				{
@@ -9696,16 +11225,16 @@ LucidImporter = {};
 					v.style += getFillColor(p, a);
 				}
 				
-				v.value = convertText(p.Name);
-				
 				var item = new Array();
 				var currH = th / h;
+				var curY = th;
 				
 				for (var i = 0; i < p.Fields; i++)
 				{
 					var itemH = 0;
-					
-					item[i] = new mxCell('', new mxGeometry(0, 0, w, p['Field' + (i + 1) + '_h'] * scale), 'part=1;resizeHeight=0;strokeColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
+					var curH = p['Field' + (i + 1) + '_h'] * scale;
+					item[i] = new mxCell('', new mxGeometry(0, curY, w, curH), 'part=1;resizeHeight=0;strokeColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;html=1;');
+					curY += curH;
 					item[i].vertex = true;
 					v.insert(item[i]);
 					item[i].style += st +
@@ -9738,9 +11267,10 @@ LucidImporter = {};
 					st = 'swimlaneFillColor=#ffffff;'
 				}
 				
+				v.value = convertText(p.Name);
 				v.style += 'swimlane;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;' + st +
 					'startSize=' + th + ';' +
-					getLabelStyle(p.Name);
+					getLabelStyle(p.Name, isLastLblHTML);
 
 				if (p.ShadedHeader)
 				{
@@ -9751,8 +11281,7 @@ LucidImporter = {};
 					v.style += getFillColor(p, a);
 				}
 				
-				v.style += addAllStyles(v.style, p, a, v);
-				v.value = convertText(p.Name);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item = new Array();
 				var key = new Array();
@@ -9768,7 +11297,7 @@ LucidImporter = {};
 				{
 					var itemH = 0;
 
-					key[i] = new mxCell('', new mxGeometry(0, currH, keyW, p['Key' + (i + 1) + '_h'] * scale), 'strokeColor=none;part=1;resizeHeight=0;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
+					key[i] = new mxCell('', new mxGeometry(0, currH, keyW, p['Key' + (i + 1) + '_h'] * scale), 'strokeColor=none;part=1;resizeHeight=0;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;html=1;');
 					key[i].vertex = true;
 					v.insert(key[i]);
 					key[i].style += st +
@@ -9788,7 +11317,7 @@ LucidImporter = {};
 
 					key[i].value = convertText(p['Key' + (i + 1)]);
 					
-					item[i] = new mxCell('', new mxGeometry(keyW, currH, w - keyW, p['Field' + (i + 1) + '_h'] * scale), 'shape=partialRectangle;top=0;right=0;bottom=0;part=1;resizeHeight=0;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
+					item[i] = new mxCell('', new mxGeometry(keyW, currH, w - keyW, p['Field' + (i + 1) + '_h'] * scale), 'shape=partialRectangle;top=0;right=0;bottom=0;part=1;resizeHeight=0;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;html=1;');
 					item[i].vertex = true;
 					v.insert(item[i]);
 					item[i].style += st +
@@ -9837,8 +11366,8 @@ LucidImporter = {};
 					v.style += getFillColor(p, a);
 				}
 				
-				v.style += addAllStyles(v.style, p, a, v);
 				v.value = convertText(p.Name);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item = new Array();
 				var key = new Array();
@@ -9872,8 +11401,8 @@ LucidImporter = {};
 							getOpacity(p, a, key[i]);
 					}
 
-					key[i].style += addAllStyles(key[i].style, p, a, key[i]);
 					key[i].value = convertText(p['Field' + (i + 1)]);
+					key[i].style += addAllStyles(key[i].style, p, a, key[i], isLastLblHTML);
 					
 					item[i] = new mxCell('', new mxGeometry(keyW, currH, w - keyW, p['Type' + (i + 1) + '_h'] * scale), 'shape=partialRectangle;top=0;right=0;bottom=0;part=1;resizeHeight=0;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
 					item[i].vertex = true;
@@ -9893,8 +11422,8 @@ LucidImporter = {};
 							getOpacity(p, a, item[i]);
 					}
 
-					item[i].style += addAllStyles(item[i].style, p, a, item[i]);
 					item[i].value = convertText(p['Type' + (i + 1)]);
+					item[i].style += addAllStyles(item[i].style, p, a, item[i], isLastLblHTML);
 					
 					currH += p['Field' + (i + 1) + '_h'] * scale;
 				}
@@ -9923,8 +11452,8 @@ LucidImporter = {};
 					v.style += getFillColor(p, a);
 				}
 				
-				v.style += addAllStyles(v.style, p, a, v);
 				v.value = convertText(p.Name);
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				
 				var item = new Array();
 				var key = new Array();
@@ -9965,8 +11494,8 @@ LucidImporter = {};
 							getOpacity(p, a, key[i]);
 					}
 
-					key[i].style += addAllStyles(key[i].style, p, a, key[i]);
 					key[i].value = convertText(p['Key' + (i + 1)]);
+					key[i].style += addAllStyles(key[i].style, p, a, key[i], isLastLblHTML);
 					
 					item[i] = new mxCell('', new mxGeometry(keyW, currH, w - keyW - typeW, p['Field' + (i + 1) + '_h'] * scale), 'shape=partialRectangle;top=0;right=0;bottom=0;part=1;resizeHeight=0;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
 					item[i].vertex = true;
@@ -9986,8 +11515,8 @@ LucidImporter = {};
 							getOpacity(p, a, item[i]);
 					}
 
-					item[i].style += addAllStyles(item[i].style, p, a, item[i]);
 					item[i].value = convertText(p['Field' + (i + 1)]);
+					item[i].style += addAllStyles(item[i].style, p, a, item[i], isLastLblHTML);
 					
 					type[i] = new mxCell('', new mxGeometry(w - typeW, currH, typeW, p['Type' + (i + 1) + '_h'] * scale), 'shape=partialRectangle;top=0;right=0;bottom=0;part=1;resizeHeight=0;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;');
 					type[i].vertex = true;
@@ -10007,8 +11536,8 @@ LucidImporter = {};
 							getOpacity(p, a, type[i]);
 					}
 
-					type[i].style += addAllStyles(type[i].style, p, a, type[i]);
 					type[i].value = convertText(p['Type' + (i + 1)]);
+					type[i].style += addAllStyles(type[i].style, p, a, type[i], isLastLblHTML);
 					
 					currH += p['Key' + (i + 1) + '_h'] * scale;
 				}
@@ -10182,12 +11711,298 @@ LucidImporter = {};
 				else
 				{
 					v.style += getLabelStyle(p.Text);
-					v.style += addAllStyles(v.style, p, a, v);
 					v.value = convertText(p.Text);
+					v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
 				}
+				break;
+			case 'SVGPathBlock2' :
+				try
+				{
+					var strokeWidth = p.LineWidth;
+					var strokeColor = p.LineColor;
+					var fillColor = p.FillColor;
+					
+					var drawData = p.DrawData.Data;
+					var svg = '<svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg">';
+					
+					for (var i = 0; i < drawData.length; i++)
+					{
+						var dd = drawData[i];
+						var path = dd.a;
+						var sw = dd.w == 'prop'? strokeWidth : dd.w;
+						var sc = dd.s == 'prop'? strokeColor : dd.s;
+						var fc = dd.f == 'prop'? fillColor : dd.f;
+						
+						svg += '<path d="' + path + '" fill="' + fc + '" stroke="' + sc + '" stroke-width="' + sw + '"/>';
+					}
+					
+					svg += '</svg>';
+					v.style = 'shape=image;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;' +
+						'verticalAlign=top;aspect=fixed;imageAspect=0;image=data:image/svg+xml,' + ((window.btoa) ? btoa(svg) : Base64.encode(svg, true));
+				}
+				catch(e){}
+				break;
+			case 'BraceBlock':
+			case 'BraceBlockRotated':
+			case 'BracketBlock':
+			case 'BracketBlockRotated':
+				var bracketStyle = cls.indexOf('Bracket') == 0? 'size=0;arcSize=50;' : '';
+				var sideStyle = addAllStyles(v.style, p, a, v, isLastLblHTML);
+				var rotation = getRotation(p, a, v);
+				v.style = 'group;' + rotation;
+				var sideWidth = Math.min((rotation? w : h) * 0.14, 100);
+				var left = new mxCell('', new mxGeometry(0, 0, sideWidth, h), 'shape=curlyBracket;rounded=1;' + bracketStyle + sideStyle);
+				left.vertex = true;
+				left.geometry.relative = true;
+				var right = new mxCell('', new mxGeometry(1 - sideWidth / w, 0, sideWidth, h), 'shape=curlyBracket;rounded=1;flipH=1;' + bracketStyle + sideStyle);
+				right.vertex = true;
+				right.geometry.relative = true;
+				
+				v.insert(left);
+				v.insert(right);
+				break;
+			case 'BPMNTextAnnotation':
+			case 'NoteBlock':
+				p.InsetMargin = null;
+				v.value = convertText(p.Text);
+				v.style = 'group;spacingLeft=8;align=left;spacing=0;strokeColor=none;';
+				v.style += addAllStyles(v.style, p, a, v, isLastLblHTML);
+				
+				if (v.style.indexOf('verticalAlign') < 0)
+				{
+					v.style += 'verticalAlign=middle;';
+				}
+				
+				var side = new mxCell('', new mxGeometry(0, 0, 8, h), 'shape=partialRectangle;right=0;fillColor=none;');
+				side.geometry.relative = true;
+				side.vertex = true;
+				side.style += addAllStyles(side.style, p, a, v, isLastLblHTML);
+				
+				v.insert(side);
+				break;
+			case 'TimelineBlock':
+			//TODO Timeline shapes are postponed, this code is a work-in-progress
+				try
+				{
+					var daysMap = {
+						'Sunday': 0,
+						'Monday': 1,
+						'Tuesday': 2,
+						'Wednesday': 3,
+						'Thursday': 4,
+						'Friday': 5,
+						'Saturday': 6
+					};
+					var isLine = p.TimelineType == 'lineTimeline';
+					var startDate = new Date(p.StartDate);
+					var endDate = new Date(p.FinishDate);
+					var startOfWeek = daysMap[p.StartOfWeek];
+					var startOfFiscY = new Date(p.StartOfFiscalYear);
+					var timeUnit = p.TimeUnit;
+					var showStartEnd = p.DisplayStartFinishDates;
+					var showTickLbl = p.DisplayInterimDates;
+					var startTick, inc;
+					
+					switch (timeUnit)
+					{
+						case 'second':
+							startTick = inc = 1000;
+						break;
+						case 'minute':
+							startTick = inc = 1000 * 60;
+						break;
+						case 'hour':
+							startTick = inc = 1000 * 60 * 60;
+						break;
+						case 'day':
+							startTick = inc = 1000 * 60 * 60 * 24;
+						break;
+						case 'week':
+							var dayTillNextWeek = (7 - startDate.getDay() + startOfWeek) % 7;
+							var nextWeek = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + dayTillNextWeek);
+							startTick = nextWeek.getTime() - startDate.getTime();
+							inc = 1000 * 60 * 60 * 24 * 7;
+						break;
+						case 'month':
+							var nextMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+							startTick = nextMonth.getTime() - startDate.getTime();
+							inc = 1000 * 60 * 60 * 24 * 30;
+						break;
+						case 'quarter':
+							var monthToNextQtr = (12 - startDate.getMonth() + startOfFiscY.getMonth()) % 3;
+							var nextQrt = new Date(startDate.getFullYear(), 
+								startDate.getMonth() + (monthToNextQtr == 0 && startDate.getDate() >= startOfFiscY.getDate()? 3 : monthToNextQtr), startOfFiscY.getDate());
+							startTick = nextQrt.getTime() - startDate.getTime();
+							inc = 1000 * 60 * 60 * 24 * 90;
+						break;
+						case 'year':
+							var nextYear = new Date(startDate.getFullYear() + 1, 0, 1);
+							startTick = nextYear.getTime() - startDate.getTime();
+							inc = 1000 * 60 * 60 * 24 * 365;
+						break;
+					}
+					
+					var diff = endDate.getTime() - startDate.getTime();
+					var afterFirst = diff - startTick;
+					var ticksCount = Math.round(afterFirst / inc);
+					
+					var startX = startTick/diff * w;
+					var dx = inc/diff * w;
+					console.log(startX, dx, ticksCount)
+				}
+				catch(e)
+				{
+					console.log(e); //Ignore
+				}
+				break;
+			case 'TimelineMilestoneBlock':
+				break;
+			case 'TimelineIntervalBlock':
 				break;
 		}
 
+		if (v.style && v.style.indexOf('html') < 0)
+		{
+			v.style += 'html=1;';
+		}
+		
+		handleTextRotation(v, p);
+		
 	    return v;
+	};
+	
+	function handleTextRotation(v, p)
+	{
+		if (p.Text_TRotation)
+		{
+			try
+			{
+				var deg = mxUtils.toDegree(p.Text_TRotation);
+				
+				if (deg != 0 && v.value)
+				{
+					var w = v.geometry.width, h = v.geometry.height;
+					var lblW = w, lblH = h, x = 0, y = 0;
+					
+					if (deg == -90 || deg == -270)
+					{
+						lblW = h;
+						lblH = w;
+						var diff = Math.abs(h - w) / 2;
+						x = diff / w;
+						y = -diff/ h;
+					}
+					
+					deg += mxUtils.toDegree(p.Rotation);
+					
+					//Remove fill and stroke colors + rotation from vertex style
+					var style = v.style.split(';').filter(function(s)
+					{
+						return s.indexOf('fillColor=') < 0 && s.indexOf('strokeColor=') < 0 && s.indexOf('rotation=') < 0;
+					}).join(';');
+					
+					var lbl = new mxCell(v.value, new mxGeometry(x, y, lblW, lblH), style + 'fillColor=none;strokeColor=none;rotation=' + deg + ';');
+					v.value = null;
+					lbl.geometry.relative = true;
+					lbl.vertex = true;
+					v.insert(lbl);
+				}
+			}
+			catch(e)
+			{
+				console.log(e); //Ignore
+			}
+		}
+	};
+	
+	//TODO A lot of work is still needed to build the cell, do the layout, ...
+	function createOrgChart(obj, graph, lookup, queue)
+	{
+		try
+		{
+			var chartType = obj.GeneratorData.p.OrgChartBlockType;
+			var fields = obj.GeneratorData.p.FieldNames;
+			var layoutSettings = obj.GeneratorData.p.LayoutSettings;
+			var cellDefaultStyle = obj.GeneratorData.p.BlockItemDefaultStyle;
+			var edgeDefaultStyle = obj.GeneratorData.p.EdgeItemDefaultStyle;
+			var chartDataSrc = obj.GeneratorData.gs.Items.n;
+			var chartData = [];
+			var parents = {};
+			var idPrefix = Date.now() + '_';
+			
+			for (var i = 0; i < chartDataSrc.length; i++)
+			{
+				var d = chartDataSrc[i];
+				chartData.push(d.f);
+				var id = idPrefix + d.pk;
+				parents[id] = d.ie;
+				var cell = new mxCell('', new mxGeometry(0, 0, 200, 100), '');
+			    cell.vertex = true;
+				lookup[id] = cell;
+				queue.push({id: id});
+			}
+			
+			for (var key in parents)
+			{
+				var p = parents[key];
+				
+				if (p[0] && p[0].nf)
+				{
+					var src = lookup[idPrefix + p[0].nf];
+					var trg = lookup[key];
+					var e = new mxCell('', new mxGeometry(0, 0, 100, 100), '');
+					e.geometry.relative = true;
+					e.edge = true;
+					graph.addCell(e, null, null, src, trg);
+				}
+			}
+			
+			var chartCells = obj.GeneratorData.povs;
+			
+			if (chartCells != null)
+			{
+				for (var key in chartCells)
+				{
+					var items = chartCells[key];
+					
+					for (var i = 0; i < items.length; i++)
+					{
+						var item = JSON.parse(items[i]);
+						console.log(item);
+						if (key.indexOf('-line') > 0) 
+						{
+							//No Endpoint1 so not useful as is
+//							queue.push({
+//								id: key + i,
+//								IsLine: true,
+//								Action: {
+//									Properties: item
+//								}
+//							});
+						}
+						else
+						{
+							//Sometimes it has no boundingBox as well as being not in sync
+//							var mainKey = Object.keys(item)[0];
+//							var constItem = {
+//								"id": key + i,
+//								"IsBlock": true,
+//								"Action": {
+//									"Action": "CreateBlock",
+//									"Class": "DefaultSquareBlock",
+//									"Properties": item
+//								}
+//							};
+//							
+//							constItem.Action.Properties.Text = item[mainKey];
+//							constItem.Action.Properties.TextVAlign = item[mainKey + '_VAlign'];
+//							lookup[key + i] = createVertex(constItem, graph);
+//							queue.push(constItem);
+						}
+					}
+				}
+			}
+		}
+		catch(e){}
 	};
 })();

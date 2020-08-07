@@ -52,7 +52,7 @@
 	
 	Sidebar.prototype.cisco19 = ['LAN Switching', 'Routing WAN', 'Network Management', 'Data Center', 'Wireless LAN', 'Collaboration', 'Security Clouds Connectors', 'Endpoint Client Device Icons', 'DNA SD Access', 'SD WAN Viptela', 'ETA Stealthwatch', 'SAFE'];
 
-	Sidebar.prototype.cisco_safe = ['Architecture', 'Capability', 'Design', 'Threat'];
+	Sidebar.prototype.cisco_safe = ['Architecture', 'Business Icons', 'Capability', 'Design', 'IoT Things Icons', 'People Places Things Icons', 'Security Icons', 'Technology Icons', 'Threat'];
 	
 	Sidebar.prototype.sysml = ['Model Elements', 'Blocks', 'Ports and Flows', 'Constraint Blocks', 'Activities', 'Interactions', 'State Machines', 
 	                           'Use Cases', 'Allocations', 'Requirements', 'Profiles', 'Stereotypes'];
@@ -146,6 +146,7 @@
            	                           {id: 'floorplan', libs: ['floorplan']},
            	                           {id: 'bootstrap', libs: ['bootstrap']},
            	                           {id: 'atlassian', libs: ['atlassian']},
+	                                   {id: 'fluid_power', libs: ['fluid_power']},
 	                                   {id: 'gmdl', prefix: 'gmdl', libs: Sidebar.prototype.gmdl},
            	                           {id: 'archimate3', prefix: 'archimate3', libs: Sidebar.prototype.archimate3},
            	                           {id: 'archimate', libs: ['archimate']},
@@ -441,6 +442,7 @@
             			          {title: mxResources.get('eip'), id: 'eip', image: IMAGE_PATH + '/sidebar-eip.png'},
             			          {title: mxResources.get('electrical'), id: 'electrical', image: IMAGE_PATH + '/sidebar-electrical.png'},
             			          {title: mxResources.get('floorplans'), id: 'floorplan', image: IMAGE_PATH + '/sidebar-floorplans.png'},
+            			          {title: 'Fluid Power (ISO 1219)', id: 'fluid_power', image: IMAGE_PATH + '/sidebar-fluid_power.png'},
             			          {title: mxResources.get('gmdl'), id: 'gmdl', image: IMAGE_PATH + '/sidebar-gmdl.png'},
             			          {title: mxResources.get('procEng'), id: 'pid', image: IMAGE_PATH + '/sidebar-pid.png'},
             			          {title: 'Threat Modeling', id: 'threatModeling', image: IMAGE_PATH + '/sidebar-threatmodeling.png'},
@@ -512,7 +514,7 @@
 					var doc = parser.parseFromString('<body style="background:#ffffff;font-family:Helvetica,Arial;">' +
 							title2.outerHTML + clone.outerHTML + '</body>', 'text/html');
 					
-					this.editorUi.convertImages(doc.documentElement, mxUtils.bind(this, function(body)
+					this.editorUi.editor.convertImages(doc.documentElement, mxUtils.bind(this, function(body)
 					{
 						var html = '<!DOCTYPE html><html><head><link rel="stylesheet" type="text/css" ' +
 							'href="https://www.draw.io/styles/grapheditor.css"></head>' +
@@ -821,7 +823,7 @@
 										url = PROXY_URL + '?url=' + encodeURIComponent(url);
 									}
 									
-									this.editorUi.loadUrl(url, mxUtils.bind(this, function(data)
+									this.editorUi.editor.loadUrl(url, mxUtils.bind(this, function(data)
 									{
 										content.style.display = 'block';
 										title.innerHTML = '';
@@ -874,7 +876,7 @@
 										url = PROXY_URL + '?url=' + encodeURIComponent(url);
 									}
 									
-									this.editorUi.loadUrl(url, mxUtils.bind(this, function(temp)
+									this.editorUi.editor.loadUrl(url, mxUtils.bind(this, function(temp)
 									{
 										try
 										{
@@ -1175,6 +1177,7 @@
 		
 		this.addElectricalPalette();
 		this.addFloorplanPalette();
+		this.addFluidPowerPalette();
 		
 		for (var i = 0; i < gmdl.length; i++)
 		{

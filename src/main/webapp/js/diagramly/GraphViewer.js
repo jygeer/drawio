@@ -16,12 +16,12 @@ mxUtils.extend(GraphViewer, mxEventSource);
 /**
  * Redirects editing to absolue URLs.
  */
-GraphViewer.prototype.editBlankUrl = 'https://www.draw.io/';
+GraphViewer.prototype.editBlankUrl = 'https://app.diagrams.net/';
 
 /**
  * Base URL for relative images.
  */
-GraphViewer.prototype.imageBaseUrl = 'https://www.draw.io/';
+GraphViewer.prototype.imageBaseUrl = 'https://app.diagrams.net/';
 
 /**
  * Redirects editing to absolue URLs.
@@ -337,6 +337,15 @@ GraphViewer.prototype.init = function(container, xmlNode, graphConfig)
 					return true;
 				};
 				
+				//Fix graph clipping by avoiding negative negative translation (after resize is finished)
+				var graphFoldCells = this.graph.foldCells;
+				
+				this.graph.foldCells = mxUtils.bind(this, function()
+				{
+					this.cellFolded = true;
+					return graphFoldCells.apply(this.graph, arguments);
+				});
+				
 				this.fireEvent(new mxEventObject('render'));
 			});
 
@@ -550,6 +559,21 @@ GraphViewer.prototype.addSizeHandler = function()
 			else if (this.toolbar != null)
 			{
 				this.toolbar.style.width = Math.max(this.minToolbarWidth, container.offsetWidth) + 'px';
+			}
+
+			//If a cell is folded set the translation zero to avoid -ve translation
+			if (this.cellFolded)
+			{
+				this.cellFolded = false;
+				
+				if (this.center)
+				{
+					this.graph.center();
+				}
+				else
+				{
+					this.graph.view.setTranslate(0, 0);
+				}
 			}
 			
 			updatingOverflow = false;
@@ -1175,6 +1199,7 @@ GraphViewer.prototype.addToolbar = function()
 		mxUtils.setOpacity(filename, 70);
 		
 		toolbar.appendChild(filename);
+		this.filename = filename;
 	}
 	
 	this.minToolbarWidth = buttonCount * 34;
@@ -1317,6 +1342,8 @@ GraphViewer.prototype.addClickHandler = function(graph, ui)
 			(mxEvent.isTouchEvent(evt) || !mxEvent.isPopupTrigger(evt)) &&
 			graph.customLinkClicked(href))
 		{
+			// Workaround for text selection in Firefox on Windows
+			mxUtils.clearSelection();
 			mxEvent.consume(evt);
 		}
 	}), mxUtils.bind(this, function(evt)
@@ -1349,7 +1376,7 @@ GraphViewer.prototype.showLightbox = function(editable, closable, target)
 			closable = (closable != null) ? closable : true;
 			target = (target != null) ? target : 'blank';
 			
-			var param = {'client': 1, 'lightbox': 1, 'target': target};
+			var param = {'client': 1, 'target': target};
 		    
 			if (editable)
 			{
@@ -1400,17 +1427,14 @@ GraphViewer.prototype.showLightbox = function(editable, closable, target)
 				param.data = encodeURIComponent(this.xml);
 			}
 			
-			var domain = 'www.draw.io';
-			
 			if (urlParams['dev'] == '1')
 			{
 				param.dev = '1';
-				param.drawdev = '1';
-				domain = 'test.draw.io';
 			}
 			
-		    this.lightboxWindow = window.open('https://' + domain +
-		    		'/#P' + encodeURIComponent(JSON.stringify(param)));
+		    this.lightboxWindow = window.open(((urlParams['dev'] != '1') ?
+		    	EditorUi.lightboxHost : 'https://test.draw.io') +
+		    	'/#P' + encodeURIComponent(JSON.stringify(param)));
 		}
 	}
 	else
@@ -1644,6 +1668,23 @@ GraphViewer.prototype.showLocalLightbox = function()
 	}), 0);
 
 	return ui;
+};
+
+GraphViewer.prototype.updateTitle = function(title)
+{
+	title = title || '';
+	
+	if (this.showTitleAsTooltip && this.graph != null && this.graph.container != null)
+	{
+		this.graph.container.setAttribute('title', title);
+    }
+	
+	if (this.filename != null)
+	{
+		this.filename.innerHTML = '';
+		mxUtils.write(this.filename, title);
+		this.filename.setAttribute('title', title);
+	}
 };
 
 /**

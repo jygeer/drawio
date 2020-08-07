@@ -46,25 +46,17 @@ public class MSGraphAuthServlet extends AbsAuthServlet
 			CONFIG = new Config(clientIds, clientSerets);
 			CONFIG.REDIRECT_PATH = "/microsoft";
 			CONFIG.AUTH_SERVICE_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-			
-			//TODO This code is temporary until new method is propagated
-			try
-			{
-				CONFIG.OLD_REDIRECT_URL = Utils
-						.readInputStream(getServletContext()
-								.getResourceAsStream("/WEB-INF/msgraph_old_client_redirect_uri"))
-						.replaceAll("\n", "");
-				CONFIG.OLD_CLIENT_ID = clientIds;
-			}
-			catch (IOException e)
-			{
-				throw new RuntimeException("OLD CONFIGs path is invalid");
-			}
 		}
 		
 		return CONFIG;
 	}	
 
+	public MSGraphAuthServlet() 
+	{
+		super();
+		cookiePath = "/microsoft";
+	}
+	
 	protected String processAuthResponse(String authRes, boolean jsonResponse)
 	{
 		StringBuffer res = new StringBuffer();
@@ -86,9 +78,10 @@ public class MSGraphAuthServlet extends AbsAuthServlet
 			res.append("	window.opener.onOneDriveCallback(authInfo, window);");
 			res.append("} else {");
 			res.append("	var authInfoStr = JSON.stringify(authInfo);");
-			res.append("	Office.initialize = function () { Office.context.ui.messageParent(authInfoStr);}");
+			res.append("	localStorage.setItem('tmpODAuth', authInfoStr);");
+			res.append("	Office.onReady(function () { Office.context.ui.messageParent(authInfoStr);});");
 			res.append("}");
-			res.append("</script></head><body></body></html>");
+			res.append("</script></head><body><div>Automatic login interrupted. Please close and select OneDrive again.</div></body></html>");
 		}
 
 		return res.toString();

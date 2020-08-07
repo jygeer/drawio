@@ -38,11 +38,6 @@ DriveClient = function(editorUi)
 	this.mimeTypes = this.xmlMimeType + ',application/mxe,application/mxr,' +
 		'application/vnd.jgraph.mxfile.realtime,application/vnd.jgraph.mxfile.rtlegacy';
 	
-	if (urlParams['photos'] == '1')
-	{
-		this.scopes.push('https://www.googleapis.com/auth/photos.upload');
-	}
-	
 	var authInfo = JSON.parse(this.token);
 	
 	if (authInfo != null && authInfo.current != null)
@@ -531,6 +526,23 @@ DriveClient.prototype.createAuthWin = function(url)
  */
 DriveClient.prototype.authorize = function(immediate, success, error, remember, popup)
 {
+	var req = new mxXmlRequest(this.redirectUri + '?getState=1', null, 'GET');
+	
+	req.send(mxUtils.bind(this, function(req)
+	{
+		if (req.getStatus() >= 200 && req.getStatus() <= 299)
+		{
+			this.authorizeStep2(req.getText(), immediate, success, error, remember, popup);
+		}
+		else if (error != null)
+		{
+			error(req);
+		}
+	}), error);
+};
+
+DriveClient.prototype.authorizeStep2 = function(state, immediate, success, error, remember, popup)
+{
 	var updateAuthInfo = mxUtils.bind(this, function (newAuthInfo, remember, forceUserUpdate)
 	{
 		this.token = newAuthInfo.access_token;
@@ -615,7 +627,8 @@ DriveClient.prototype.authorize = function(immediate, success, error, remember, 
 			if (immediate) //Note, we checked refresh token is not null above
 			{
 				//state is used to identify which app/domain is used
-				var req = new mxXmlRequest(this.redirectUri + '?state=' + encodeURIComponent('cId=' + this.clientId + '&domain=' + window.location.hostname) + '&refresh_token=' + authInfo.refresh_token, null, 'GET');
+				var req = new mxXmlRequest(this.redirectUri + '?state=' + encodeURIComponent('cId=' + this.clientId + '&domain=' + window.location.hostname + '&ver=2&token=' + state)
+						+ '&refresh_token=' + authInfo.refresh_token, null, 'GET');
 				
 				req.send(mxUtils.bind(this, function(req)
 				{
@@ -648,7 +661,7 @@ DriveClient.prototype.authorize = function(immediate, success, error, remember, 
 						'&response_type=code&include_granted_scopes=true' +
 						(remember? '&access_type=offline&prompt=consent%20select_account' : '') + //Ask for consent again to get a new refresh token
 						'&scope=' + encodeURIComponent(this.scopes.join(' ')) +
-						'&state=' + encodeURIComponent('cId=' + this.clientId + '&domain=' + window.location.hostname); //To identify which app/domain is used
+						'&state=' + encodeURIComponent('cId=' + this.clientId + '&domain=' + window.location.hostname + '&ver=2&token=' + state); //To identify which app/domain is used
 				
 				if (popup == null)
 				{
@@ -780,7 +793,7 @@ DriveClient.prototype.updateUser = function(success, error)
 		var url = 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json';
 		var headers = {'Authorization': 'Bearer ' + this.token};
 		
-		this.ui.loadUrl(url, mxUtils.bind(this, function(data)
+		this.ui.editor.loadUrl(url, mxUtils.bind(this, function(data)
 		{
 	    	var info = JSON.parse(data);
 	    	
@@ -832,7 +845,7 @@ DriveClient.prototype.copyFile = function(id, title, success, error)
 	if (id != null && title != null)
 	{
 		this.executeRequest({url: '/files/' + id + '/copy?fields=' + encodeURIComponent(this.allFields)
-				+ '&supportsAllDrives=true', //&alt=json
+				+ '&supportsAllDrives=true&enforceSingleParent=true', //&alt=json
 				method: 'POST',
 				params: {'title': title, 'properties':
 					[{'key': 'channel', 'value': Editor.guid()}]}
@@ -1031,7 +1044,7 @@ DriveClient.prototype.getXmlFile = function(resp, success, error, ignoreMime, re
 		var url = resp.downloadUrl;
 		
 		// Loads XML to initialize realtime document if realtime is empty
-		this.ui.loadUrl(url, mxUtils.bind(this, function(data)
+		this.ui.editor.loadUrl(url, mxUtils.bind(this, function(data)
 		{
 			try
 			{
@@ -1185,7 +1198,7 @@ DriveClient.prototype.getXmlFile = function(resp, success, error, ignoreMime, re
  * @param {number} dx X-coordinate of the translation.
  * @param {number} dy Y-coordinate of the translation.
  */
-DriveClient.prototype.saveFile = function(file, revision, success, errFn, noCheck, unloading, overwrite, properties)
+DriveClient.prototype.saveFile = function(file, revision, success, errFn, noCheck, unloading, overwrite, properties, secret)
 {
 	try
 	{
@@ -1335,7 +1348,7 @@ DriveClient.prototype.saveFile = function(file, revision, success, errFn, noChec
 						}
 						
 						// Pass to access cache for each etag
-						properties.push({'key': 'secret', 'value': Editor.guid(32)});
+						properties.push({'key': 'secret', 'value': (secret != null) ? secret : Editor.guid(32)});
 					}
 					
 					// Specifies that no thumbnail should be uploaded in which case the existing thumbnail is used
@@ -1510,14 +1523,14 @@ DriveClient.prototype.saveFile = function(file, revision, success, errFn, noChec
 									var acceptResponse = true;
 									var timeoutThread = null;
 									
-									// Allow for re-auth flow with 3x timeout
+									// Allow for re-auth flow with 5x timeout
 									try
 									{
 										timeoutThread = window.setTimeout(mxUtils.bind(this, function()
 										{
 											acceptResponse = false;
-											error({code: App.ERROR_TIMEOUT, message: mxResources.get('timeout')});
-										}), 3 * this.ui.timeout);
+											error({code: App.ERROR_TIMEOUT});
+										}), 5 * this.ui.timeout);
 									}
 									catch (e)
 									{
@@ -1643,7 +1656,7 @@ DriveClient.prototype.saveFile = function(file, revision, success, errFn, noChec
 							{
 								file.saveLevel = 9;
 								
-								if (realOverwrite)
+								if (realOverwrite || etag == null)
 								{
 									doExecuteSave(realOverwrite);
 								}
@@ -1658,7 +1671,7 @@ DriveClient.prototype.saveFile = function(file, revision, success, errFn, noChec
 										timeoutThread = window.setTimeout(mxUtils.bind(this, function()
 										{
 											acceptResponse = false;
-											error({code: App.ERROR_TIMEOUT, message: mxResources.get('timeout')});
+											error({code: App.ERROR_TIMEOUT});
 										}), 3 * this.ui.timeout);
 									}
 									catch (e)
@@ -1775,10 +1788,13 @@ DriveClient.prototype.saveFile = function(file, revision, success, errFn, noChec
 		
 					if (saveAsPng)
 					{
+						var p = this.ui.getPngFileProperties(this.ui.fileNode);
+						
 						this.ui.getEmbeddedPng(mxUtils.bind(this, function(data)
 						{
 							doExecuteRequest(data, true);
-						}), error, (this.ui.getCurrentFile() != file) ? savedData : null);
+						}), error, (this.ui.getCurrentFile() != file) ?
+							savedData : null, p.scale, p.border);
 					}
 					else
 					{
@@ -1929,14 +1945,15 @@ DriveClient.prototype.createUploadRequest = function(id, metadata, data, revisio
 	var reqObj = 
 	{
 		'fullUrl': 'https://content.googleapis.com/upload/drive/v2/files' + (id != null ? '/' + id : '') +
-			'?uploadType=multipart&supportsAllDrives=true&fields=' + this.allFields,
+			'?uploadType=multipart&supportsAllDrives=true&enforceSingleParent=true&fields=' + this.allFields,
 		'method': (id != null) ? 'PUT' : 'POST',
 		'headers': headers,
 		'params': delim + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delim +
 			'Content-Type: ' + ctype + '\r\n' + 'Content-Transfer-Encoding: base64\r\n' + '\r\n' +
-			((data != null) ? (binary) ? data : Base64.encode(data) : '') + close
+			((data != null) ? ((binary) ? data : ((window.btoa && !mxClient.IS_IE && !mxClient.IS_IE11) ?
+				Graph.base64EncodeUnicode(data) : Base64.encode(data))) : '') + close
 	}
-	
+
 	if (!revision)
 	{
 		reqObj.fullUrl += '&newRevision=false';

@@ -5,9 +5,16 @@
 async function handleRequest(request) {
   let requestURL = new URL(request.url)
   let host = requestURL.host
+  let sub = host;
   let path = requestURL.pathname
   
-  let hostRedirectMap = redirectMap.get(host)
+  if (host != null)
+  {
+	  let parts = host.split('.')
+	  sub = parts[0]
+  }
+
+  let hostRedirectMap = redirectMap.get(sub)
   
   if (hostRedirectMap)
   {
@@ -30,6 +37,17 @@ async function handleRequest(request) {
 		  }
 		  else
 		  {
+			  if (path.startsWith('/label') || path.startsWith('/rest') || path.startsWith('/login.action'))
+			  {
+				  // blah
+			  }
+			  else
+			  {
+				  let msg = encodeURIComponent('redirect-worker-404-' + requestURL);
+				  let url = 'https://log.diagrams.net/' + msg;
+				  fetch(url);
+			  }
+
 			  let lastSlash = path.lastIndexOf('/');
 			  
 			  if (lastSlash >= 0)
@@ -43,8 +61,10 @@ async function handleRequest(request) {
 			  }
 		  }
 	  } while (!done)
+
+
   }
-  
+
   // If not in the map, return 404
   return new Response('NOT_FOUND', { status: 404 });
 }
@@ -54,7 +74,7 @@ addEventListener('fetch', async event => {
 })
 
 const redirectMap = new Map([
-	['about.draw.io', new Map([
+	['about', new Map([
 		['/drawio-desktop-10-7-5-release', 'https://github.com/jgraph/drawio-desktop/releases/tag/v10.7.5'],
 		['/insert-from-text-now-supports-plantuml', '/use-plantuml-in-draw-io'],
 		['/integrate-draw-io/', '/integrations-ecosystem/'],
@@ -113,6 +133,7 @@ const redirectMap = new Map([
 		['/simplified-tags-plugin/', 'https://www.diagrams.net/doc/faq/tags-plugin'],
 		['/github-support/', 'https://www.diagrams.net/blog/github-support'],
 		['/support-for-your-language-in-draw-io/', 'https://www.diagrams.net/blog/translate-drawio'],
+		['/translate-drawio/', 'https://www.diagrams.net/blog/translate-drawio'],
 		['/altshiftcursor/', 'https://www.diagrams.net/blog/shortcut-clone-connect'],
 		['/altshiftselect-now-removes-selected-cells%ef%bb%bf/', 'https://www.diagrams.net/blog/shortcut-deselect-shapes'],
 		['/draw-io-diagrams-for-confluence/', 'https://www.diagrams.net/integrations'],
@@ -126,40 +147,57 @@ const redirectMap = new Map([
 		['/features/examples/', 'https://drawio-app.com/'],
 		['/features/training-material/', 'https://drawio-app.com/tutorials/'],
 		['/terms-conditions/', 'https://seibert-media.com/general-terms/'],
-		['/', 'https://drawio-app.com/']
+		['/support/', 'https://github.com/jgraph/drawio/wiki/Getting-Support'],
+		['/about-us/', 'https://www.diagrams.net/about.html'],
+		['/', 'https://drawio-app.com']
 	])],
-	['blog.draw.io', new Map([
-		['/', 'https://drawio-app.com/blog']
+	['support', new Map([
+		['/label', 'https://127.0.0.1'],
+		['/rest', 'https://127.0.0.1'],
+		['/display/DFCS/draw.io+for+Confluence+Server', 'https://drawio-app.com'],
+		['/display/DO/Exporting+Files', 'https://desk.draw.io/a/solutions/articles/16000067785'],
+		['/display/DO/Online+Support', 'https://github.com/jgraph/drawio/wiki/Getting-Support'],
+		['/display/DO', 'https://github.com/jgraph/drawio/wiki/Getting-Support'],
+		['/display/DAFGD/draw.io+Add-on+for+Google+Docs', 'https://www.diagrams.net/blog/diagrams-google-docs.html'],
+		['/x/LYAk', 'https://seibert.biz/atlassianeula'],
+		['/display/DOB/2016/04/28/UML+State+Diagrams+with+draw.io', 'https://drawio-app.com/uml-state-diagrams-with-draw-io/'],
+		['/display/do/2015/01/08/gliffy+and+lucidchart+importing', 'https://desk.draw.io/support/solutions/articles/16000064013-mass-import-gliffy-diagrams-to-draw-io-in-confluence-server'],
+		['/display/DFCS/draw.io+for+Confluence+and+JIRA+support+terms+and+Service+Level+Agreement',
+		  'https://marketplace.atlassian.com/apps/1210933/draw-io-diagrams-for-confluence?hosting=server&tab=support'],
+		['/', 'https://github.com/jgraph/drawio/wiki/Getting-Support']
 	])],
-	['download.draw.io', new Map([
+	['blog', new Map([
+		['/', 'https://www.diagrams.net/blog']
+	])],
+	['download', new Map([
 		['/', 'https://github.com/jgraph/drawio-desktop/releases/latest']
 	])],
-	['get.draw.io', new Map([
+	['get', new Map([
 		['/', 'https://github.com/jgraph/drawio-desktop/releases/latest']
 	])],
-	['docsaddon.draw.io', new Map([
+	['docsaddon', new Map([
 		['/', 'https://gsuite.google.com/marketplace/app/drawio_viewer_for_docs/224440279306']
 	])],
-	['gsuite.draw.io', new Map([
+	['gsuite', new Map([
 		['/', 'https://gsuite.google.com/marketplace/app/drawio_diagrams/671128082532']
 	])],
-	['office.draw.io', new Map([
+	['office', new Map([
 		['/', 'https://appsource.microsoft.com/product/office/wa200000113']
 	])],
-	['slidesaddon.draw.io', new Map([
+	['slidesaddon', new Map([
 		['/', 'https://gsuite.google.com/marketplace/app/drawio_diagrams_for_slides/588283048931']
 	])],
-	['sheetsaddon.draw.io', new Map([
+	['sheetsaddon', new Map([
 		['/', 'https://gsuite.google.com/marketplace/app/drawio_diagrams_for_sheets/948903782998']
 	])],
-	['doc.draw.io', new Map([
+	['doc', new Map([
 		['/i18n', 'https://docs.google.com/spreadsheets/d/1FoYdyEraEQuWofzbYCDPKN7EdKgS_2ZrsDrOA8scgwQ'],
-		['/', 'https://support.draw.io']
+		['/', 'https://www.diagrams.net/doc/']
 	])],
-	['app.draw.io', new Map([
-		['/', 'https://www.draw.io/app']
+	['app', new Map([
+		['/', 'https://app.diagrams.net']
 	])],
-	['new.draw.io', new Map([
-		['/', 'https://www.draw.io/?splash=0']
+	['new', new Map([
+		['/', 'https://app.diagrams.net/?splash=0']
 	])]
 ])

@@ -63,7 +63,6 @@
 		</concat>
 		<echo file="${basedir}/Graph-Stylesheet.js" append="true">`).documentElement;</echo>
 
-		
 		<delete file="${basedir}/.tmp2.js"/>
 		<copy file="${war.dir}/resources/dia.txt" tofile="${basedir}/.tmp2.xml" overwrite="true"/>
 		<replaceregexp file="${basedir}/.tmp2.xml" match="${line.separator}" flags="g" replace="\\\\n"/>
@@ -123,6 +122,7 @@
 				<file name="Sidebar-ER.js" />
 				<file name="Sidebar-Floorplan.js" />
 				<file name="Sidebar-Flowchart.js" />
+				<file name="Sidebar-FluidPower.js" />
 				<file name="Sidebar-GCP.js" />
 				<file name="Sidebar-GCP2.js" />
 				<file name="Sidebar-Gmdl.js" />
@@ -212,6 +212,7 @@
 			<filelist dir="${war.dir}/js/spin" files="spin.min.js"/>
 			<filelist dir="${war.dir}/js/sanitizer" files="sanitizer.min.js"/>
 			<filelist dir="${war.dir}/js/deflate" files="pako.min.js"/>
+			<filelist dir="${war.dir}/js/rough" files="rough.min.js"/>
 			<filelist dir="${basedir}" files="client.min.js,.tmp1.js"/>
     	</concat>
 
@@ -240,7 +241,18 @@
 		
 		<concat destfile="${war.dir}/js/viewer.min.js" fixlastline="yes" append="no">
 			<filelist dir="${basedir}" files="base-viewer.min.js,.tmp2.min.js"/>
-    		</concat>
+    	</concat>
+
+		<!-- Disables eval for JS (uses shapes.min.js) -->
+		<echo file="${basedir}/.tmp3.js">
+			mxStencilRegistry.allowEval = false;
+		</echo>
+		
+		<concat destfile="${war.dir}/js/viewer-static.min.js" fixlastline="yes" append="no">
+			<filelist dir="${basedir}" files="base-viewer.min.js"/>
+			<filelist dir="${war.dir}/js" files="shapes.min.js"/>
+				<filelist dir="${basedir}" files=".tmp3.js,.tmp2.min.js"/>
+		</concat>
 
 		<delete file="${war.dir}/js/extensions.min.js"/>
 		<delete file="${basedir}/.tmp0.js"/>
@@ -248,6 +260,7 @@
 		<delete file="${basedir}/.tmp1.js"/>
 		<delete file="${basedir}/.tmp2.js"/>
 		<delete file="${basedir}/.tmp2.min.js"/>
+		<delete file="${basedir}/.tmp3.js"/>
 		<delete file="${basedir}/.tmp1.xml"/>
 		<delete file="${basedir}/.tmp2.xml"/>
 
@@ -290,6 +303,7 @@
 			<filelist dir="${war.dir}/js/cryptojs" files="aes.min.js"/>
 			<filelist dir="${war.dir}/js/deflate" files="pako.min.js"/>
 			<filelist dir="${war.dir}/js/croppie" files="croppie.min.js"/>
+			<filelist dir="${war.dir}/js/rough" files="rough.min.js"/>
 			<filelist dir="${basedir}" files="client.min.js,grapheditor.min.js,sidebar.min.js,.tmp1.js"/>
     	</concat>
 
@@ -403,6 +417,7 @@
 			<filelist dir="${war.dir}/js/cryptojs" files="aes.min.js"/>
 			<filelist dir="${war.dir}/js/deflate" files="pako.min.js"/>
 			<filelist dir="${war.dir}/js/croppie" files="croppie.min.js"/>
+			<filelist dir="${war.dir}/js/rough" files="rough.min.js"/>
 			<filelist dir="${basedir}" files="client.min.js,grapheditor.min.js,sidebar.min.js,.tmp1.js"/>
     	</concat>
 
@@ -425,7 +440,11 @@
 		<fileset dir="${war.dir}/WEB-INF/lib" />
 	</path>
 
-	<target name="javac" depends="app" description="Java compilation">
+	<target name="checkGliffy">
+	    <available file="${src.dir}/com/mxgraph/io/gliffy/importer/gliffyTranslation.properties" property="gliffy.present"/>
+	</target>
+
+	<target name="javac" depends="app, checkGliffy" if="gliffy.present" description="Java compilation">
 		<mkdir dir="${javac.dir}"/>
 		<javac includeantruntime="false" srcdir="${src.dir}" excludes="**/EmbedServlet2.java" destdir="${javac.dir}">
 			<classpath refid="javac.class.path" />

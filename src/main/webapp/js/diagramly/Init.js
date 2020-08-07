@@ -19,8 +19,9 @@ window.isSvgBrowser = window.isSvgBrowser || navigator.userAgent == null ||
 // CUSTOM_PARAMETERS - URLs for save and export
 window.DRAWIO_BASE_URL = window.DRAWIO_BASE_URL || ((/.*\.draw\.io$/.test(window.location.hostname)) ?
 	window.location.protocol + '//' + window.location.hostname : 'https://app.diagrams.net');
+window.DRAWIO_LIGHTBOX_URL = window.DRAWIO_LIGHTBOX_URL || 'https://viewer.diagrams.net';
 window.EXPORT_URL = window.EXPORT_URL || 'https://exp.draw.io/ImageExport4/export';
-window.PLANT_URL = window.PLANT_URL || 'https://exp-plant.draw.io/plantuml-1-2020-2';
+window.PLANT_URL = window.PLANT_URL || 'https://plant-aws.diagrams.net';
 window.DRAW_MATH_URL = window.DRAW_MATH_URL || window.DRAWIO_BASE_URL + '/math';
 window.VSD_CONVERT_URL = window.VSD_CONVERT_URL || 'https://convert.draw.io/VsdConverter/api/converter';
 window.EMF_CONVERT_URL = window.EMF_CONVERT_URL || 'https://convert.draw.io/emf2png/convertEMF';
@@ -37,7 +38,7 @@ window.SHAPES_PATH = window.SHAPES_PATH || 'shapes';
 // Path for images inside the diagram
 window.GRAPH_IMAGE_PATH = window.GRAPH_IMAGE_PATH || 'img';
 window.ICONSEARCH_PATH = window.ICONSEARCH_PATH || (((navigator.userAgent != null && navigator.userAgent.indexOf('MSIE') >= 0) ||
-	urlParams['dev']) && window.location.protocol != 'file:' ? 'iconSearch' : 'https://app.diagrams.net/iconSearch');
+	urlParams['dev']) && window.location.protocol != 'file:' ? 'iconSearch' : window.DRAWIO_BASE_URL + '/iconSearch');
 window.TEMPLATE_PATH = window.TEMPLATE_PATH || 'templates';
 window.NEW_DIAGRAM_CATS_PATH = window.NEW_DIAGRAM_CATS_PATH || 'newDiagramCats';
 window.PLUGINS_BASE_PATH = window.PLUGINS_BASE_PATH || '';
@@ -104,6 +105,7 @@ window.mxLanguageMap = window.mxLanguageMap ||
 	'et' : 'Eesti',
 	'en' : 'English',
 	'es' : 'Español',
+	'eu' : 'Euskadi',
 	'fil' : 'Filipino',
 	'fr' : 'Français',
 	'gl' : 'Galego',
@@ -295,13 +297,25 @@ function setCurrentXml(data, filename)
 	
 	if (host != 'test.draw.io')
 	{
-		var searchString = 'draw.io';
+		var searchString = 'diagrams.net';
 		var position = host.length - searchString.length;
 		var lastIndex = host.lastIndexOf(searchString, position);
 		
 		if (lastIndex !== -1 && lastIndex === position)
 		{
-			window.DRAWIO_LOG_URL = 'https://log.draw.io';
+			window.DRAWIO_LOG_URL = 'https://log.diagrams.net';
+		}
+		else
+		{
+			// For atlas integrations
+			var searchString = 'draw.io';
+			var position = host.length - searchString.length;
+			var lastIndex = host.lastIndexOf(searchString, position);
+			
+			if (lastIndex !== -1 && lastIndex === position)
+			{
+				window.DRAWIO_LOG_URL = 'https://log.draw.io';
+			}
 		}
 	}
 })();
@@ -323,6 +337,18 @@ if (urlParams['offline'] == '1' || urlParams['local'] == '1')
 {
 	urlParams['math'] = '0';
 }
+
+// Uses embed mode on embed domain
+if (window.location.hostname == 'embed.diagrams.net')
+{
+	urlParams['embed'] = '1';
+}	
+
+// Uses lightbox mode on viewer domain
+if (window.location.hostname == 'viewer.diagrams.net')
+{
+	urlParams['lightbox'] = '1';
+}	
 
 // Lightbox enables chromeless mode
 if (urlParams['lightbox'] == '1')
